@@ -1,0 +1,26 @@
+name: Tracegroomer
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - python=3.9.12
+  - pip  
+  - numpy~=1.23.1
+  - pandas~=1.5.3
+  - openpyxl~=3.1.2
+  - poetry
+  - pyyaml~=6.0
+  - scikit-learn~=1.1.1
+  - scipy~=1.9.1
+  - matplotlib~=3.7.1
+  - seaborn~=0.11.2
+  - conda-forge::sphinx
+  - conda-forge::coverage
+  - conda-forge::flake8=4.0.1
+  - conda-forge::flake8-import-order=0.18.1
+  - conda-forge::click
+  - conda-forge::pytest 
+  - conda-forge::pytest-cov 
+  - conda-forge::mypy
+  - conda-forge::python-dotenv>=0.5.1

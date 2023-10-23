@@ -1,0 +1,17 @@
+# -----------------------------
+# This is for grooming
+# Note: for indentation use space (never tab!): 2 space indents
+# coments start with #
+# -----------------------------
+
+metadata : metadata_toy1
+
+# For this IsoCor type of input, just write the desired tables names:
+abundances : AbundanceCorrected
+mean_enrichment : MeanEnrichment13C
+isotopologue_proportions : IsotopologuesProp # isotopologue proportions
+isotopologues : IsotopologuesAbs  # isotopologue absolute values
+
+groom_out_path : ~/groomexamples/toyp1/raw/    # absolute path
+
+
