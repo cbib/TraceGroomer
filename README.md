@@ -3,7 +3,7 @@
 TraceGroomer is a command line solution for formatting and normalising **Trace**r metabolomics given file(s), 
 to produce the .csv files which are ready for [DIMet](https://github.com/cbib/DIMet) tool.
 
-Currently, three **types** of Tracer (or Isotope-labeled) metabolomics measurements files are accepted by `TraceGroomer.tidy` script:
+Currently, three **styles of format** of Tracer (or Isotope-labeled) metabolomics measurements files are accepted by `TraceGroomer.tidy` script:
 
 1. IsoCor results (.tsv measurments file).
 2. Results provided by the VIB Metabolomics Expertise Center (El-Maven results are shaped by VIB MEC team into a multi-sheet .xlsx file).  
