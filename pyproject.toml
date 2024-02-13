@@ -20,12 +20,16 @@ seaborn = "^0.13.2"
 openpyxl = "^3.1.2"
 PyYAML = "^6.0.1"
 python-dotenv = "^1.0.1"
+pydantic = "^1.10.8"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0.0"
 pytest-cov = "^4.1.0"
 coverage = "^7.4.1"
 flake8 = "^7.0.0"
+
+[tool.poetry.scripts]
+tracegroomer = "tracegroomer.__main__:main"
 
 [build-system]
 requires = ["poetry-core"]

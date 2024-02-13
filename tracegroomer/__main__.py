@@ -1,5 +1,6 @@
 import argparse
 import os
+import sys
 
 import tracegroomer.utils as fg
 from tracegroomer.tidy import perform_type_prep
@@ -85,7 +86,7 @@ def prep_args() -> argparse.ArgumentParser:
     return parser
 
 
-def main():
+def main() -> int:
     parser = prep_args()
     args = parser.parse_args()
     configfile = os.path.expanduser(args.config)
@@ -112,6 +113,7 @@ def main():
 
     perform_type_prep(args, confidic, meta_path, targetedMetabo_path,
                       amount_mater_path, groom_out_path)
+    return 0
 
 if __name__ == "__main__":
-    main(prep_args)
+    sys.exit(main())
