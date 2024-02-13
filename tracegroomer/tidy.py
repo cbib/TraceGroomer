@@ -280,7 +280,7 @@ def isosAbsol_divideby_amount_material(frames_dic: dict, confidic: dict,
 
 def abund_divideby_internalStandard(frames_dic, confidic,
                                     internal_standards_df,
-                                    use_internal_standard: [str, None]):
+                                    use_internal_standard: str|None):
     if use_internal_standard is None:
         return frames_dic
     else:
@@ -570,7 +570,7 @@ def df_to__dic_bycomp(df: pd.DataFrame, metadata: pd.DataFrame) -> dict:
 def do_isocorOutput_prep(meta_path, targetedMetabo_path, args, confidic,
                          amount_mater_path, output_plots_dir):
     def isocor_2_frames_dic(isocor_out_df, metadata, confidic,
-                            internal_standard: [str, None]):
+                            internal_standard: str|None):
         df = isocor_out_df[
             ['sample', 'metabolite', 'isotopologue', 'corrected_area',
              'isotopologue_fraction', 'mean_enrichment']]
@@ -714,7 +714,7 @@ def do_generic_prep(meta_path, targetedMetabo_path, args, confidic,
     return frames_dic, confidic_new
 
 
-def drop_metabolites_infile(frames_dic, exclude_list_file: [str, None]):
+def drop_metabolites_infile(frames_dic, exclude_list_file: str|None):
     if exclude_list_file is not None:
         print("removing metabolites as specified by user in file:")
         print(exclude_list_file, "\n")
