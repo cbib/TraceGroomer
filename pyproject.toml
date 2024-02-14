@@ -37,7 +37,7 @@ flake8 = "^7.0.0"
 exceptiongroup = "^1.2.0"
 mypy = "*"
 sphinx = "*"
-poetry = "*"
+tomli = "^2.0.1"
 
 [tool.poetry.scripts]
 tracegroomer = "tracegroomer.__main__:main"
