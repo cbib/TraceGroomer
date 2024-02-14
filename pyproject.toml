@@ -35,6 +35,9 @@ pytest-cov = "^4.1.0"
 coverage = "^7.4.1"
 flake8 = "^7.0.0"
 exceptiongroup = "^1.2.0"
+mypy = "*"
+sphinx = "*"
+poetry = "*"
 
 [tool.poetry.scripts]
 tracegroomer = "tracegroomer.__main__:main"
