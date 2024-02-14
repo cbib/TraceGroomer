@@ -119,8 +119,10 @@ def abund_under_lod_set_nan(confidic, frames_dic, metadata,
             abund_co = frames_dic[confidic['abundances']][co]
             abund_coT = abund_co.T
             for i, r in abund_coT.iterrows():
-                abund_coT.loc[i, :].loc[
-                    abund_coT.loc[i, :] < lod_values[i]] = np.nan
+                # avoid future error "FutureWarning: ChainedAssignmentError":
+                tmp = abund_coT.loc[i, :].copy()
+                tmp.loc[tmp < lod_values[i]] = np.nan
+                abund_coT.loc[i, :] = tmp
             frames_dic[confidic['abundances']][co] = abund_coT.T
 
     return frames_dic
@@ -358,7 +360,7 @@ def save_isos_preview(dic_isos_prop, metadata, output_plots_dir,
                 columns=['isotopologue_type', 'metabolite'])
 
             thesums = thesums.astype(float).round(3)
-            ff = f"{output_plots_dir}sums_Iso_{k}.pdf"
+            ff = os.path.join(output_plots_dir, f"sums_Iso_{k}.pdf")
             figuretitle = f"Sums of isotopologue proportions ({k}) "
             fg.save_heatmap_sums_isos(thesums, figuretitle, ff)
 
@@ -366,7 +368,7 @@ def save_isos_preview(dic_isos_prop, metadata, output_plots_dir,
             dfmelt = fg.givelevels(dfmelt)
             fg.table_minimalbymet(dfmelt,
                                   f"{output_plots_dir}minextremesIso_{k}.csv")
-            outputfigure = f"{output_plots_dir}allsampleIsos_{k}.pdf"
+            outputfigure = os.path.join(output_plots_dir ,f"allsampleIsos_{k}.pdf")
             figtitle = f"{k} compartment, Isotopologues (proportions) \
             across all samples"
             fg.save_rawisos_plot(dfmelt, figuretitle=figtitle,
@@ -492,8 +494,8 @@ def compute_MEorFC_from_isotopologues_proportions(df, metabos_isos_df):
         sub_df['coefs'] = coefs
         # compute the factors, produce another pandas df coefs_fracs_prod
         coefs_fracs_prod = sub_df.multiply(sub_df['coefs'], axis=0)
-        # line above makes coefs column be multiplied by itself, TODO: fix this, for now just dropping the coefs col
-        # get rid of the coefs column:
+        # line above makes coefs column be multiplied by itself,
+        # TODO : In a future fix this, for now just dropping the coefs col :
         coefs_fracs_prod.drop(columns=['coefs'], inplace=True)
         # sum the factors
         numerator_val = coefs_fracs_prod.sum(axis=0, skipna=False)
@@ -804,8 +806,7 @@ def transfer__abund_nan__to_all_tables(confidic, frames_dic, meta_path):
 
 def perform_type_prep(args, confidic, meta_path, targetedMetabo_path,
                       amount_mater_path, groom_out_path) -> None:
-    elems_t_dir = targetedMetabo_path.split("/")[:-1]
-    output_plots_dir = "/".join(elems_t_dir) + "/" + "preview_plots/"
+    output_plots_dir = os.path.join(groom_out_path, "preview_plots")
     fg.detect_and_create_dir(output_plots_dir)
 
     fg.detect_and_create_dir(groom_out_path)
@@ -853,7 +854,7 @@ def perform_type_prep(args, confidic, meta_path, targetedMetabo_path,
         finalk = finalk.reset_index()
         finalk = finalk.drop_duplicates()
         finalk.to_csv(
-            f"{groom_out_path}{k}.csv",
+            os.path.join(groom_out_path, f"{k}.csv"),
             sep='\t', header=True, index=False)
 
     if len(os.listdir(output_plots_dir)) == 0:
