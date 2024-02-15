@@ -30,24 +30,16 @@ Your data must be already processed by another software that performs such corre
 
 TraceGroomer requires Python 3.10+.  Running in a virtual environment is highly recommended.
 
+Install it via `pip`: `pip install tracegroomer`
 
+Tracegroomer is also available as a [conda package](https://bioconda.github.io/conda-package_index.html)
 
-Install via PyPI:
-
-```
-pip install tracegroomer
-```
-
-After this, the tool is ready to use:
-```
-python -m tracegroomer --help
-```
 
 <details>
 <summary>
-Local install (alternatively)
+Local install of TraceGroomer
 </summary>
-Alternatively, for installing locally, clone this repository, make sure you have activated 
+For a local install, clone this repository, make sure you have activated 
 your virtual environment with Python 3.10+
 (<code>source MY_VIRTUAL_ENV/bin/activate</code>), with <code>poetry</code> installed.
 
