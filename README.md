@@ -144,8 +144,9 @@ Its execution takes only few seconds. Below we explain how to proceed.
    
    ```  
    
-   When the fields `abundances`, `mean_enrichment`, and/or `isotopologue_proportions` are set `null`
-  (as shown in the example above), 
+  As shown in the example of configuration file above:
+
+  When the fields `abundances`, `mean_enrichment`, and/or `isotopologue_proportions` are set `null`,
   the respective output file will be automatically generated (when possible from existing quantifications).
 
    The user will find [here](#running-a-test-with-the-provided-examples) how to get examples.
@@ -200,7 +201,7 @@ organization and the configurations, and modify the command line to be suitable 
 ### Running a test with the provided examples
 
 To perform a test using the examples we provide, please download
-and uncompress our example from [Zenodo](https://zenodo.org/records/10660026). The structure of the folder is:
+and uncompress our examples from [Zenodo](https://zenodo.org/records/10660026). The structure of the folder is:
 
 ```
 examples_TraceGroomer
