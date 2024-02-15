@@ -282,27 +282,15 @@ The format of these output files is tab-delimited .csv.
 
 --------------------
 
-## Advanced options
+## Offered processing by type of input
 
-We provide advanced options for this script, check the help:
-```
-python -m tracegroomer --help
-```
-they appear as 'optional arguments' in the help menu.
-
-
-You can:
-
-- normalize by the amount of material (number of cells, tissue weight), and/or
-- normalize by an internal standard (present in your data) at choice
 
 We have some indications that can slightly differ for [users having VIB results as input](#users-having-vib-results), [users having IsoCor results](#users-having-isocor-results) or users having ['generic' type of data](#users-having-generic-data). After consulting the one of your case, please visit [Advanced options](#advanced-options) section for the offered normalisations.
-
 
  
 ### Users having IsoCor results
 
-Before explaining the advanced options for this kind of data, a short explanation about what TraceGroomer performs automatically as basic formatting:
+A short explanation about what TraceGroomer performs automatically as basic formatting:
 
 A typical IsoCor results table is described in: https://isocor.readthedocs.io/en/latest/tutorials.html#output-files
  It consists of a .tsv file which has in columns the sample, metabolite, isotopologue and all quantifications, and the rows are in piled version (the samples are repeated vertically).
@@ -318,11 +306,6 @@ A typical IsoCor results table is described in: https://isocor.readthedocs.io/en
  
 We provide the example downloadable from Zenodo (see [here](#running-a-test-with-the-provided-examples))
         
-Advanced options regarding to detection limit (LOD) and blanks will not have any effect on the IsoCor type of data: LOD is not provided in the data, and the same is true for blanks. 
-
-All the other advanced options do have effect: those related to internal standard, amount of material, and isotopologues.
- 
- 
  
 ### Users having VIB results
 
@@ -356,10 +339,20 @@ _Notes_:
 
 ## Advanced options:
 
-Available for all the types of supported input files:
+We provide advanced options for this script, available for all the types of supported input files:, check the help:
+```
+python -m tracegroomer --help
+```
+they appear as 'optional arguments' in the help menu.
+
+
+You can:
 
 - normalize by the amount of material (number of cells, tissue weight): setting the path to the file in `--amountMaterial_path` option. The file must be like [this csv file](groomexamples/toyp2/nbcells-or-amountOfMaterial.csv), and the first column must contain the same names as in metadata 'original\_name'.
 - normalize by an internal standard (present in your data) at choice: using the advanced option `--use_internal_standard`.
 - remove metabolites 
 - print a preview of isotopologues values
+
+_Note_: Advanced options regarding to detection limit (LOD) and blanks will only have effect in the VIB-MEC type of data.
+
   
