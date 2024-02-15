@@ -356,3 +356,55 @@ You can:
 _Note_: Advanced options regarding to detection limit (LOD) and blanks will only have effect in the VIB-MEC type of data.
 
   
+# Getting help
+
+For any information or help running DIMet, you can get in touch with: 
+
+* [Johanna Galvis](mailto:deisy-johanna.galvis-rodriguez[AT]u-bordeaux.fr)
+* [Macha Nikolski](mailto:macha.nikolski[AT]u-bordeaux.fr)
+* [Benjamin Dartigues](mailto:benjamin.dartigues[AT]u-bordeaux.fr)
+
+---
+
+# LICENSE MIT
+
+Copyright (c) 2024
+
+    Johanna Galvis (1,2)    deisy-johanna.galvis-rodriguez@u-bordeaux.fr
+    Benjamin Dartigues (2)	benjamin.dartigues@u-bordeaux.fr
+    Slim Karkar (1,2)       slim.karkar@u-bordeaux.fr
+    Helge Hecht (3,5)       helge.hecht@recetox.muni.cz
+    Bjorn Gruening (4,5)    bjoern.gruening@gmail.com
+    Macha Nikolski (1,2)    macha.nikolski@u-bordeaux.fr
+
+    (1) CNRS, IBGC - University of Bordeaux,
+    1, rue Camille Saint-Saens, Bordeaux, France
+
+    (2) CBiB - University of Bordeaux,
+    146, rue Leo Saignat, Bordeaux, France
+
+    (3) RECETOX
+    Faculty of Science, Masaryk University, Kotlářksá 2, 611 37 Brno, Czech Republic
+
+    (4) University of Freiburg,
+    Freiburg, Germany
+
+    (5) Galaxy Europe
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
