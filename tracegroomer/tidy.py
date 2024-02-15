@@ -807,9 +807,10 @@ def transfer__abund_nan__to_all_tables(confidic, frames_dic, meta_path):
 def perform_type_prep(args, confidic, meta_path, targetedMetabo_path,
                       amount_mater_path, groom_out_path) -> None:
     output_plots_dir = os.path.join(groom_out_path, "preview_plots")
-    fg.detect_and_create_dir(output_plots_dir)
+    if args.isotopologues_preview:
+        fg.detect_and_create_dir(output_plots_dir)
 
-    fg.detect_and_create_dir(groom_out_path)
+    fg.detect_and_create_dir(groom_out_path) # remove in future version
 
     if args.type_of_file == 'IsoCor_out_tsv':
         frames_dic = do_isocorOutput_prep(meta_path, targetedMetabo_path,
@@ -856,7 +857,6 @@ def perform_type_prep(args, confidic, meta_path, targetedMetabo_path,
         finalk.to_csv(
             os.path.join(groom_out_path, f"{k}.csv"),
             sep='\t', header=True, index=False)
+        print("File saved to:",  os.path.join(groom_out_path, f"{k}.csv"))
 
-    if len(os.listdir(output_plots_dir)) == 0:
-        os.removedirs(output_plots_dir)
 
