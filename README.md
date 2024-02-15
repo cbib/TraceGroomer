@@ -269,11 +269,11 @@ python3 -m tracegroomer --targetedMetabo_path ~/examples_TraceGroomer/data/examp
 ## The output
 
 The output files are saved in the  folder that  
-you specified in the config `.yml` file (`groom_out_path` field). 
+you specified in the config `.yml` file (`groom_out_path` field). The `data/[my_dataset]` location is recommended. 
 A total of 4 output files are generated if the absolute isotopologues are provided, otherwise 3 files are generated.
 
 
-In this way we simply copy the entire `data/` content to the folder structure that we want to run with  [DIMet](https://github.com/cbib/DIMet) !
+In this way you simply copy the entire `data/` content to the folder structure that we want to run with  [DIMet](https://github.com/cbib/DIMet) !
 
 The format of these output files is tab-delimited .csv.
 
