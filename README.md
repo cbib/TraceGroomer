@@ -10,7 +10,7 @@ Currently, three **styles of format** of Tracer (or Isotope-labeled) metabolomic
 
 1. IsoCor results (.tsv measurments file).
 2. Results provided by the VIB Metabolomics Expertise Center (El-Maven results are shaped by VIB MEC team into a multi-sheet .xlsx file).  
-3. A 'generic' .xlsx measurements file.
+3. A 'generic' .xlsx measurements file, manually set by the user.
 
 For any type of these supported inputs, TraceGroomer generates an independent file for:
 i) total metabolite abundances ii) Isotopologues iii) Isotopologues' proportions and iv) mean enrichment (a.k.a fractional contributions).
@@ -181,7 +181,7 @@ MyProject
 ```
 This structure is recommended to easily re-use the `data` folder for DIMet.
 
-The generic command line is:
+The command line is:
 
 ```
 python3 -m tracegroomer --targetedMetabo_path $MEASUREMENTS \
@@ -211,7 +211,7 @@ examples_TraceGroomer
 │   │   └── TRACER_IsoCor_out_example.tsv
 │   ├── example-sheet_data
 │   │   ├── metadata_3.csv
-│   │   └── TRACER_generic_custom.xlsx
+│   │   └── TRACER_generic_sheet.xlsx
 │   └── example-vib_data
 │       ├── metadata_2.csv
 │       └── TRACER_metabo_2.xlsx
@@ -230,7 +230,7 @@ examples_TraceGroomer
 
 Pick the example most suited to your data:
 
-1. IsoCor output (tsv file)
+1. IsoCor data (tsv file)
 2. VIB MEC xlsx file
 3. or a generic type of xlsx file
 
@@ -238,10 +238,9 @@ Pick the example most suited to your data:
 ### Run the script
 
 _Note_ : if the working folder is not the 'home' directory, modify accordingly the absolute paths in the .yml files and in the bash commands.
-locate yourself in ``, then run:
 
 
-**For IsoCor case**:
+**For IsoCor data**:
 
 ```
 python3 -m tracegroomer \
@@ -250,7 +249,7 @@ python3 -m tracegroomer \
    ~/examples_TraceGroomer/groom_files/example-isocor/config-1-groom.yml
 ```
 
-or, for VIB MEC case:
+or, for VIB MEC data:
 
 ```
 python3 -m tracegroomer \
@@ -260,7 +259,7 @@ python3 -m tracegroomer \
 
 ```
 
-or, for generic case:
+or, for the generic case:
 
 ```
 python3 -m tracegroomer --targetedMetabo_path ~/examples_TraceGroomer/data/example-sheet_data/TRACER_generic_sheet.xlsx \
@@ -271,14 +270,14 @@ python3 -m tracegroomer --targetedMetabo_path ~/examples_TraceGroomer/data/examp
 
 ## The output
 
-The output files are saved in the  folder that  
-you specified in the config `.yml` file (`groom_out_path` field). The `data/[my_dataset]` location is recommended. 
+Thet files are saved in the  folder that you specified in the config `.yml` file (`groom_out_path` field).
+The `data/[my_dataset]` location is recommended for saving the output. 
 A total of 4 output files are generated if the absolute isotopologues are provided, otherwise 3 files are generated.
 
 
 In this way you simply copy the entire `data/` content to the folder structure that we want to run with  [DIMet](https://github.com/cbib/DIMet) !
 
-The format of these output files is tab-delimited .csv.
+The format of theset files is tab-delimited .csv.
 
 
 --------------------
@@ -298,7 +297,7 @@ A typical IsoCor results table is described in: https://isocor.readthedocs.io/en
  
  Our script transforms specific columns of that file into tables. As the total metabolite abundance column is not present in the input data, the total abundance per metabolite is the automatic result of the sum, per metabolite, of Isotopologues' absolute values (see `AbundanceCorrected` below). So here the correspondances:
 
-|column in the IsoCor file  | TraceGroomer output filename |
+|column in the IsoCor file  | TraceGroomert filename |
 |--------|-------|
 |corrected_area |IsotopologuesAbsolute |
 |isotopologue_fraction | IsotopologuesProportions|
@@ -340,7 +339,7 @@ _Notes_:
 
 ## Advanced options:
 
-We provide advanced options for this script, available for all the types of supported input files:, check the help:
+We provide advanced options for this script, available for all the types of supported input files; check the help:
 ```
 python -m tracegroomer --help
 ```
