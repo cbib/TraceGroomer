@@ -11,7 +11,6 @@ class Test(TestCase):
               "col1": [0.3,0.7, 0.2,0.8],
               "col2": [0.7,0.3, 0.4,0.6]})
         result = tidy.compute_sums_isotopol_props(df)
-        print(result)
         self.assertEqual(result.loc['a','col1'], 1)
         self.assertEqual(result.loc['a', 'col2'], 1)
         self.assertEqual(result.loc['b', 'col1'], 1)
