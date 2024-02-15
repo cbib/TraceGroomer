@@ -1,7 +1,7 @@
 # TraceGroomer
 
-[![PyPI - Python Version](https://img.shields.io/pypi/v/TraceGroomer)](https://pypi.org/project/TraceGroomer/)
-[![bioconda package](https://img.shields.io/conda/v/bioconda/TraceGroomer)](https://anaconda.org/bioconda/TraceGroomer)
+[![PyPI - Python Version](https://img.shields.io/pypi/v/tracegroomer)](https://pypi.org/project/tracegroomer/)
+[![bioconda package](https://img.shields.io/conda/v/bioconda/tracegroomer)](https://anaconda.org/bioconda/tracegroomer)
 
 TraceGroomer is a solution for formatting and normalising **Trace**r metabolomics given file(s), 
 to produce the .csv files which are ready for [DIMet](https://github.com/cbib/DIMet) tool.
@@ -30,19 +30,39 @@ Your data must be already processed by another software that performs such corre
 
 TraceGroomer requires Python 3.10+.  Running in a virtual environment is highly recommended.
 
-For installing locally, clone this repository, make sure you have activated 
+
+
+Install via PyPI:
+
+```
+pip install tracegroomer
+```
+
+After this, the tool is ready to use:
+```
+python -m tracegroomer --help
+```
+
+<details>
+<summary>
+Local install (alternatively)
+</summary>
+Alternatively, for installing locally, clone this repository, make sure you have activated 
 your virtual environment with Python 3.10+
-(`source MY_VIRTUAL_ENV/bin/activate`), with `poetry` installed.
+(<code>source MY_VIRTUAL_ENV/bin/activate</code>), with <code>poetry</code> installed.
 
 Then install dependencies: locate yourself in `TraceGroomer` and run
 ```
 poetry install
 ```
 
-After this the tool is ready to use:
+After this, the tool is ready to use:
 ```
 python -m tracegroomer --help
 ```
+
+</details>
+  
 
 
 ## How to use TraceGroomer
