@@ -34,10 +34,10 @@ Install it via `pip`: `pip install tracegroomer`
 
 Tracegroomer is also available as a [conda package](https://bioconda.github.io/conda-package_index.html)
 
-
+Alternatively, if you are a developer, you can do a local install:
 <details>
 <summary>
-Local install of TraceGroomer
+Local install of TraceGroomer <sup><sub>(click to show/hide)</sub></sup>
 </summary>
 For a local install, clone this repository, make sure you have activated 
 your virtual environment with Python 3.10+
