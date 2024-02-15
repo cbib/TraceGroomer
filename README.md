@@ -1,5 +1,8 @@
 # TraceGroomer
 
+[![PyPI - Python Version](https://img.shields.io/pypi/v/TraceGroomer)](https://pypi.org/project/TraceGroomer/)
+[![bioconda package](https://img.shields.io/conda/v/bioconda/TraceGroomer)](https://anaconda.org/bioconda/TraceGroomer)
+
 TraceGroomer is a command line solution for formatting and normalising **Trace**r metabolomics given file(s), 
 to produce the .csv files which are ready for [DIMet](https://github.com/cbib/DIMet) tool.
 
