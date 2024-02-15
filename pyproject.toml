@@ -2,7 +2,14 @@
 name = "tracegroomer"
 version = "0.1.0"
 description = ""
-authors = ["Helge Hecht <helge.hecht@recetox.muni.cz>"]
+authors = [
+  "Johanna Galvis Rodriguez <deisy-johanna.galvis-rodriguez@u-bordeaux.fr>",
+  "Benjamin Dartigues <benjamin.dartigues@u-bordeaux.fr>",
+  "Helge Hecht <helge.hecht@recetox.muni.cz>",
+  "Slim Karkar <slim.karkar@u-bordeaux.fr>",
+  "Bjorn Gruening <bjoern.gruening@gmail.com>",
+  "Macha Nikolski <macha.nikolski@u-bordeaux.fr>"
+]
 license = "MIT"
 readme = "README.md"
 
@@ -27,6 +34,10 @@ pytest = "^8.0.0"
 pytest-cov = "^4.1.0"
 coverage = "^7.4.1"
 flake8 = "^7.0.0"
+exceptiongroup = "^1.2.0"
+mypy = "*"
+sphinx = "*"
+tomli = "^2.0.1"
 
 [tool.poetry.scripts]
 tracegroomer = "tracegroomer.__main__:main"

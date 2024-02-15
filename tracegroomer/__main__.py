@@ -101,7 +101,6 @@ def main() -> int:
     for k in expected_keys_makeready:
         assert k in confidic.keys(), f"{k} : missing in configuration file! "
 
-   #meta_path = os.path.expanduser(confidic['metadata'])
     targetedMetabo_path = os.path.expanduser(args.targetedMetabo_path)
     groom_out_path = os.path.expanduser(confidic['groom_out_path'])
 

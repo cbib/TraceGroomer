@@ -3,7 +3,7 @@
 TraceGroomer is a command line solution for formatting and normalising **Trace**r metabolomics given file(s), 
 to produce the .csv files which are ready for [DIMet](https://github.com/cbib/DIMet) tool.
 
-Currently, three **styles of format** of Tracer (or Isotope-labeled) metabolomics measurements files are accepted by `TraceGroomer.tidy` script:
+Currently, three **styles of format** of Tracer (or Isotope-labeled) metabolomics measurements files are accepted:
 
 1. IsoCor results (.tsv measurments file).
 2. Results provided by the VIB Metabolomics Expertise Center (El-Maven results are shaped by VIB MEC team into a multi-sheet .xlsx file).  
@@ -25,27 +25,23 @@ Your data must be already processed by another software that performs such corre
 
 ## Requirements
 
-Clone this repository, make sure you have activated your virtual environment 
-(`source MY_VIRTUAL_ENV/bin/activate`), locate yourself inside your local clone (`cd TraceGroomer`) and install dependencies via pip:
+TraceGroomer requires Python 3.10+ installed or as a virtual environment.
+
+
+For installing locally, clone this repository, make sure you have activated 
+your virtual environment with Python 3.10+
+(`source MY_VIRTUAL_ENV/bin/activate`), with `poetry` installed.
+
+Then install dependencies: locate yourself in `TraceGroomer` and run
 ```
-pip install -r requirements.txt
+poetry install
 ```
 
-<details>
-<summary>Alternatively, use a conda environment <sup><sub>click to show/hide</sub></sup>
-</summary>
-
-Locate yourself in `TraceGroomer/tools`, then run:
-
+After this the tool is ready to use:
 ```
-conda env create -f TraceGroomer.yml
-```
-And  activate the created environment:
-```
-conda activate TraceGroomer
+python -m tracegroomer --help
 ```
 
-</details>
 
 ## How to use TraceGroomer
 
@@ -111,7 +107,7 @@ Its execution takes only few seconds. Below we explain how to proceed.
    | Cond2 T0     | cond2     | T0        | 0       | comp_name   | T0_cond_2     |
    | Cond3 T24    | cond2     | T24       | 24      | comp_name   | T24_cond_2    |
 
-   The column `name_to_plot` is not used by `TraceGroomer.tidy` 
+   The column `name_to_plot` is not used by `tracegroomer` 
       but it will be used by DIMet, so it is practical to set it from the start.
 
      _Note_: You can create this file with any spreadsheet program such as Excel or Google Sheets or LibreOfice Calc. At the moment of saving your file you specify that the delimiter must be a `tab` ("Tab delimiter" or similar option depending of your context), see https://support.microsoft.com/en-us/office/save-a-workbook-to-text-format-txt-or-csv-3e9a9d6c-70da-4255-aa28-fcacf1f081e6. 
@@ -119,7 +115,7 @@ Its execution takes only few seconds. Below we explain how to proceed.
   </details>
 
 
-- the basic configuration file (extension .yml)
+- the configuration file
 
   <details>
   <summary>
@@ -134,15 +130,16 @@ Its execution takes only few seconds. Below we explain how to proceed.
    # coments start with #
    # -----------------------------
    
-   metadata: metadata_toy3   # only file name, no extension
-   
+  # absolute path to output DIRECTORY : 
+   groom_out_path :  ~/examples_TraceGrommer/data/example-isocor_data 
+  
+   metadata: metadata1   # file name, no extension. Must be in the output DIR 
    # names of the sheets in xlsx file that exist (null otherwise) 
    abundances : null  # total abundance
    mean_enrichment : null  # mean enrichment
    isotopologue_proportions : null  # isotopologue proportions
-   isotopologues : isotopologuesCorrValues  # isotopologue absolute values
+   isotopologues : isotopologuesCorrValues  # isotopologue absolute values  
    
-   groom_out_path : ~/groomexamples/toyp3/raw/  # absolute path to folder
    ```  
    
    When the fields `abundances`, `mean_enrichment`, and/or `isotopologue_proportions` are set `null`
@@ -168,20 +165,23 @@ in [Advanced options](#advanced-options)
 
 You must organize your files as follows:
 ```
-MY_WORKING_FOLDER
-└── my_project
-	└── my_dataset_name
-	     ├── config_groom.yml  # <- my basic configuration in .yml file
-	     ├── raw
-	     │   └── metadata_toy1.csv  # <- my metadata, inside the 'raw' folder 
-	     ├── ... # the csv files for normalizations, etc (optional)
-	     └── TRACER_IsoCor_out_example.tsv  # <- my measurements file
+MyProject
+├── data
+│   ├── dataset1_data
+│   │   ├── metadata_1.csv
+│   │   └── TRACER_IsoCor_out_example.tsv
+└── groom_files
+    └── dataset1
+              ├── amount_material_weightorcells.csv
+              └── config-1-groom.yml
+
 ```
+This structure is recommended to easily re-use the `data` folder for DIMet.
 
 The generic command line is:
 
 ```
-python3 -m TraceGroomer.tidy --targetedMetabo_path $MEASUREMENTS \
+python3 -m tracegroomer --targetedMetabo_path $MEASUREMENTS \
     --type_of_file $MY_TYPE_OF_INPUT \
     $MY_BASIC_CONFIG
 ```
@@ -190,35 +190,38 @@ Where :
 - `MY_TYPE_OF_INPUT` corresponds to one of: `IsoCor_out_tsv`, `VIBMEC_xlsx`, `generic_xlsx`
 
 We recommend to run a test with the provided examples if this is the
-first time you use TraceGroomer.tidy. Then re-use  the 
+first time you use TraceGroomer. Then re-use  the 
 organization and the configurations, and modify the command line to be suitable to your data.
 
 -------------------------------------
 
 ### Running a test with the provided examples
 
-To perform a test using the examples we provide, place
-the folder `groomexamples` **completely outside** of the TraceGroomer folder, obtaining a structure a like this:
+To perform a test using the examples we provide, please download
+and uncompress our example from [Zenodo](https://zenodo.org/records/10660026). The structure of the folder is:
 
 ```
-MY_WORKING_FOLDER
-├── groomexamples
-|	├──toyp1
-|	│   ├── config-1-groom.yml  # the configuration for the 1st example
-|	│   ├── raw
-|	│   │   └── metadata_toy1.csv
-|	│   └── TRACER_IsoCor_out_example.tsv
-|	├── toyp2
-|	│   ├── config-2-groom.yml   # the configuration for the 2nd example
-|	│   ├── raw
-|	│   │   └── metadata_toy2.csv
-|	│   ├── ... # the csv files for normalizations, etc
-|	│   └── TRACER_metabo_toy2.xlsx
-|	└── toyp3
-|		├── ...
-│  
-└── TraceGroomer
-    ├── ...
+examples_TraceGroomer
+├── data
+│   ├── example-isocor_data
+│   │   ├── metadata_1.csv
+│   │   └── TRACER_IsoCor_out_example.tsv
+│   ├── example-sheet_data
+│   │   ├── metadata_3.csv
+│   │   └── TRACER_generic_custom.xlsx
+│   └── example-vib_data
+│       ├── metadata_2.csv
+│       └── TRACER_metabo_toy2.xlsx
+└── groom_files
+    ├── example-isocor
+    │   ├── amount_material_weightorcells.csv
+    │   └── config-1-groom.yml
+    ├── example-sheet
+    │   └── config-3-groom.yml
+    └── example-vib
+        ├── config-2-groom.yml
+        ├── nbcells-or-amountOfMaterial.csv
+        └── reject_list.csv
 
 ```
 
@@ -229,46 +232,48 @@ Pick the example most suited to your data:
 3. 'toyp3' : a generic type of xlsx file
 
 
-### Run `TraceGroomer.tidy` 
+### Run the script
+
+_Note_ : if the working folder is not the 'home' directory, modify accordingly the absolute paths in the .yml files and in the bash commands.
+locate yourself in ``, then run:
 
 
-locate yourself in `MY_WORKING_FOLDER`, then run:
-For IsoCor case:
+**For IsoCor case**:
+
 ```
-python3 -m TraceGroomer.tidy \
-   --targetedMetabo_path groomexamples/toyp1/TRACER_IsoCor_out_example.tsv \
+python3 -m tracegroomer \
+   --targetedMetabo_path ~/examples_TraceGroomer/data/example-isocor_data/TRACER_IsoCor_out_example.tsv \
    --type_of_file IsoCor_out_tsv \
-   groomexamples/toyp1/config-1-groom.yml
+   ~/examples_TraceGroomer/groom_files/example-isocor/config-1-groom.yml
 ```
 
 or, for VIB MEC case:
 
 ```
-python3 -m TraceGroomer.tidy \
-   --targetedMetabo_path groomexamples/toyp2/TRACER_metabo_toy2.xlsx \
-   --type_of_file VIBMEC_xlsx \
-   --amountMaterial_path groomexamples/toyp2/nbcells-or-amountOfMaterial.csv \
-   groomexamples/toyp2/config-2-groom.yml
+python3 -m tracegroomer \
+  --targetedMetabo_path ~/examples_TraceGroomer/data/example-vib_data/TRACER_metabo_2.xlsx \
+  --type_of_file VIBMEC_xlsx 
+  ~/examples_TraceGroomer/groom_files/example-vib/config-2-groom.yml
+
 ```
 
 or, for generic case:
 
 ```
-python3 -m TraceGroomer.tidy \
-   --targetedMetabo_path groomexamples/toyp3/TRACER_generic_toy3.xlsx \
-   --type_of_file generic_xlsx \
-   groomexamples/toyp3/config-3-groom.yml
+python3 -m tracegroomer --targetedMetabo_path ~/examples_TraceGroomer/data/example-sheet_data/TRACER_generic_sheet.xlsx \
+   --type_of_file generic_xlsx 
+   ~/examples_TraceGroomer/groom_files/example-sheet/config-3-groom.yml
 ```
-_Note_ : if the working folder is not the 'home' directory, modify accordingly the absolute paths in the .yml files and in the bash commands.
-
 
 
 ## The output
 
-The output files are saved in the  folder that  you specified in the config `.yml` file ("out_path" field). 
+The output files are saved in the  folder that  
+you specified in the config `.yml` file (`groom_out_path` field). 
 A total of 4 output files are generated if the absolute isotopologues are provided, otherwise 3 files are generated.
-The examples we provide here use the `raw/` folder (inside each given "toyp*" directory) as the output location. 
-In this way we simply copy the entire `raw/` content to the folder structure that we want to run with  [DIMet](https://github.com/cbib/DIMet) !
+
+
+In this way we simply copy the entire `data/` content to the folder structure that we want to run with  [DIMet](https://github.com/cbib/DIMet) !
 
 The format of these output files is tab-delimited .csv.
 
@@ -277,16 +282,17 @@ The format of these output files is tab-delimited .csv.
 
 ## Advanced options
 
-We provide advanced options for `TraceGroomer.tidy` script, check the help:
+We provide advanced options for this script, check the help:
 ```
-python -m TraceGroomer.tidy --help
+python -m tracegroomer --help
 ```
 they appear as 'optional arguments' in the help menu.
 
 
 You can:
 
-- normalize by the amount of material (number of cells, tissue weight): setting the path to the file in `--amountMaterial_path` option. The file must be like [this csv file](groomexamples/toyp2/nbcells-or-amountOfMaterial.csv), and the first column must contain the same names as in metadata 'original\_name'.
+- normalize by the amount of material (number of cells, tissue weight): setting the path to the file in `--amountMaterial_path` option. 
+One example is provided in the example `groom_files/example-vib/nbcells-or-amountOfMaterial.csv`: the first column must contain the same names as in metadata 'original\_name'.
 - normalize by an internal standard (present in your data) at choice: using the advanced option `--use_internal_standard`.
 
 However we have some indications that can slightly differ for [users having VIB results as input](#users-having-vib-results), [users having IsoCor results](#users-having-isocor-results) or users having ['generic' type of data](#users-having-generic-data).
