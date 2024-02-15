@@ -211,7 +211,7 @@ examples_TraceGroomer
 │   │   └── TRACER_generic_custom.xlsx
 │   └── example-vib_data
 │       ├── metadata_2.csv
-│       └── TRACER_metabo_toy2.xlsx
+│       └── TRACER_metabo_2.xlsx
 └── groom_files
     ├── example-isocor
     │   ├── amount_material_weightorcells.csv
@@ -227,9 +227,9 @@ examples_TraceGroomer
 
 Pick the example most suited to your data:
 
-1. 'toyp1' : IsoCor output (tsv file)
-2. 'toyp2' : VIB MEC xlsx file
-3. 'toyp3' : a generic type of xlsx file
+1. IsoCor output (tsv file)
+2. VIB MEC xlsx file
+3. or a generic type of xlsx file
 
 
 ### Run the script
@@ -291,11 +291,10 @@ they appear as 'optional arguments' in the help menu.
 
 You can:
 
-- normalize by the amount of material (number of cells, tissue weight): setting the path to the file in `--amountMaterial_path` option. 
-One example is provided in the example `groom_files/example-vib/nbcells-or-amountOfMaterial.csv`: the first column must contain the same names as in metadata 'original\_name'.
-- normalize by an internal standard (present in your data) at choice: using the advanced option `--use_internal_standard`.
+- normalize by the amount of material (number of cells, tissue weight), and/or
+- normalize by an internal standard (present in your data) at choice
 
-However we have some indications that can slightly differ for [users having VIB results as input](#users-having-vib-results), [users having IsoCor results](#users-having-isocor-results) or users having ['generic' type of data](#users-having-generic-data).
+We have some indications that can slightly differ for [users having VIB results as input](#users-having-vib-results), [users having IsoCor results](#users-having-isocor-results) or users having ['generic' type of data](#users-having-generic-data). After consulting the one of your case, please visit [Advanced options](#advanced-options) section for the offered normalisations.
 
 
  
@@ -315,7 +314,7 @@ A typical IsoCor results table is described in: https://isocor.readthedocs.io/en
 | mean_enrichment| MeanEnrichment|
 |- | AbundanceCorrected |
  
-We provide the example [toyp1](groomexamples/toyp1).     
+We provide the example downloadable from Zenodo (see [here](#running-a-test-with-the-provided-examples))
         
 Advanced options regarding to detection limit (LOD) and blanks will not have any effect on the IsoCor type of data: LOD is not provided in the data, and the same is true for blanks. 
 
@@ -325,7 +324,7 @@ All the other advanced options do have effect: those related to internal standar
  
 ### Users having VIB results
 
-As shown in the example [toyp2](groomexamples/toyp2/), give the names of the sheets that are present in your excel file coherently in the .yml file. 
+As shown in the example, give the names of the sheets that are present in your excel file coherently in the .yml file. 
  
 Our script performs, by default:
 - the subtraction of the means of the blanks across all metabolites' abundance for each sample.
@@ -338,21 +337,24 @@ You can modify all those options depending on your needs, they appear as 'option
 
 ### Users having generic data
 
-We have created this option for those formats that are not the other two scenarios, so your data is expectd to be in the form of a .xlsx file with sheets similar as in the provided 'toyp3'  :
+We have created this option for those formats that are not the other two scenarios, so your data is expectd to be in the form of a .xlsx file with sheets similar as in the provided in `example-sheet`:
 
 - this .xlsx file must **NOT** contain: formulas, symbols accompanying the numeric values, nor special characters.
 - each sheet must correspond to one type of quantification, see _Notes_ below.
 - the header (first row, with the molecules IDs), and the first column (with the samples) can contain non numeric values.
 - the isotopologues names, in the header, must follow the convention `metaboliteID_labelX`: the substring `_label` is compulsory and is located between the metabolite name (or identifier) `metaboliteID` and the number of marked carbon atoms `X` (e.g. `glucose6phosphate_label0`).
 
-As in example [toyp3](groomexamples/toyp3) if you only have Isotopologue Absolute values, but not the other tables: put them as a single named sheet in your .xlsx file, and we automatically generate all the other types of tables for you ! 
+**Important** : If you only have Isotopologue Absolute values, but not the other tables: put them as a single named sheet in your .xlsx file, and TraceGroomer automatically generate all the other types of tables for you ! 
 
 _Notes_: 
 - sheets corresponding to isotopologue Proportions (when available) and isotopologue Absolute values (compulsory if the proportions not available) must have isotopologues as columns and samples as rows.
 - sheets corresponding to abundance and mean enrichment  (when available) must have metabolites as columns and samples as rows.
 - the sheets corresponding to isotopologues measurements must be named with a name containing the string "isotopol". The names of the sheets must be unambiguous.
 
-Possible advanced options:
+
+## Advanced options:
+
+Available for all the types of supported input files:
 
 - normalize by the amount of material (number of cells, tissue weight): setting the path to the file in `--amountMaterial_path` option. The file must be like [this csv file](groomexamples/toyp2/nbcells-or-amountOfMaterial.csv), and the first column must contain the same names as in metadata 'original\_name'.
 - normalize by an internal standard (present in your data) at choice: using the advanced option `--use_internal_standard`.
