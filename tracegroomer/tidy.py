@@ -237,47 +237,7 @@ def abund_divideby_amount_material(frames_dic: dict, confidic: dict,
     return frames_dic
 
 
-def isosAbsol_divideby_amount_material(frames_dic: dict, confidic: dict,
-                                   amount_material: str,
-                                   alternative_method: bool):
-    if amount_material is not None:
-        try:
-            file = amount_material
-            material_df = pd.read_csv(file, sep='\t', index_col=0)
 
-            assert material_df.shape[1] == 1,\
-                "amountMaterial table must have only 2 columns"
-
-            assert (material_df.iloc[:, 0] <= 0).sum() == 0, "amountMaterial table\
-                 must not contain zeros nor negative numbers"
-
-            abund_dic = frames_dic[confidic['isotopologues']].copy()
-            for compartment in abund_dic.keys():
-                material_df_s = material_df.loc[
-                                list(abund_dic[compartment].index), :]
-                if alternative_method:
-                    material_avg = material_df_s.iloc[:, 0].mean()
-                    material_avg_ser = pd.Series([float(material_avg) for i in
-                                                  range(material_df_s.shape[
-                                                            0])],
-                                                 index=material_df_s.index)
-                    tmp = abund_dic[compartment].div(material_df_s.iloc[:, 0],
-                                                     axis=0)
-                    tmp = tmp.mul(material_avg_ser, axis=0)
-                else:
-                    tmp = abund_dic[compartment].div(material_df_s.iloc[:, 0],
-                                                     axis=0)
-
-                frames_dic[confidic['isotopologues']][compartment] = tmp
-
-        except FileNotFoundError as err_file:
-            print(err_file)
-        except UnboundLocalError as uerr:
-            print(uerr, "config amountMaterial_path:  check spelling")
-        except Exception as e:
-            print(e)
-
-    return frames_dic
 
 
 def abund_divideby_internalStandard(frames_dic, confidic,
@@ -398,7 +358,7 @@ def do_vib_prep(meta_path, targetedMetabo_path, args, confidic,
                                          blanks_df, args.subtract_blankavg)
 
     arg_alt_div_amount_material = args.alternative_div_amount_material
-    frames_dic = abund_divideby_amount_material(frames_dic, confidic,
+    frames_dic = abund_divideby_amount_material(frames_dic, confidic,  # VIB
                                                 amount_mater_path,
                                                 arg_alt_div_amount_material)
 
@@ -636,16 +596,11 @@ def do_isocorOutput_prep(meta_path, targetedMetabo_path, args, confidic,
     frames_dic = abund_divideby_internalStandard(frames_dic, confidic,
                                                  instandard_abun_df,
                                                  args.use_internal_standard)
-    frames_dic = abund_divideby_amount_material(
+    frames_dic = abund_divideby_amount_material(    # OSOCOR, only abundance
         frames_dic, confidic,
         amount_mater_path,
         args.alternative_div_amount_material)
 
-    # # I tested divide absol isotopols by amount mater => values too small !
-    # frames_dic = isosAbsol_divideby_amount_material(
-    #     frames_dic, confidic,
-    #     amount_mater_path,
-    #     args.alternative_div_amount_material)
 
     save_isos_preview(frames_dic[confidic['isotopologue_proportions']],
                       metadata,
@@ -698,16 +653,12 @@ def do_generic_prep(meta_path, targetedMetabo_path, args, confidic,
             args.use_internal_standard)
     # end if
 
-    frames_dic = abund_divideby_amount_material(
+    frames_dic = abund_divideby_amount_material(    # generic, only abund
         frames_dic, confidic_new,
         amount_mater_path,
         args.alternative_div_amount_material)
 
-    # # TODO : think divide or not divide absolute isotopologues
-    # frames_dic = isosAbsol_divideby_amount_material(
-    #     frames_dic, confidic,
-    #     amount_mater_path,
-    #     args.alternative_div_amount_material)
+
 
     save_isos_preview(frames_dic[confidic_new['isotopologue_proportions']],
                       metadata,

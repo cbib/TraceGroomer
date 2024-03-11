@@ -172,6 +172,49 @@ def save_rawisos_plot(dfmelt, figuretitle, outputfigure) -> None:
 
 # end functions for isotopologue preview
 
+
+def isosAbsol_divideby_amount_material(frames_dic: dict, confidic: dict,
+                                   amount_material: str,
+                                   alternative_method: bool):
+    if amount_material is not None:
+        try:
+            file = amount_material
+            material_df = pd.read_csv(file, sep='\t', index_col=0)
+
+            assert material_df.shape[1] == 1,\
+                "amountMaterial table must have only 2 columns"
+
+            assert (material_df.iloc[:, 0] <= 0).sum() == 0, "amountMaterial table\
+                 must not contain zeros nor negative numbers"
+
+            abund_dic = frames_dic[confidic['isotopologues']].copy()
+            for compartment in abund_dic.keys():
+                material_df_s = material_df.loc[
+                                list(abund_dic[compartment].index), :]
+                if alternative_method:
+                    material_avg = material_df_s.iloc[:, 0].mean()
+                    material_avg_ser = pd.Series([float(material_avg) for i in
+                                                  range(material_df_s.shape[
+                                                            0])],
+                                                 index=material_df_s.index)
+                    tmp = abund_dic[compartment].div(material_df_s.iloc[:, 0],
+                                                     axis=0)
+                    tmp = tmp.mul(material_avg_ser, axis=0)
+                else:
+                    tmp = abund_dic[compartment].div(material_df_s.iloc[:, 0],
+                                                     axis=0)
+
+                frames_dic[confidic['isotopologues']][compartment] = tmp
+
+        except FileNotFoundError as err_file:
+            print(err_file)
+        except UnboundLocalError as uerr:
+            print(uerr, "config amountMaterial_path:  check spelling")
+        except Exception as e:
+            print(e)
+
+    return frames_dic
+
 # END
 
 # useful resources:
