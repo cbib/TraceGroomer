@@ -13,7 +13,16 @@ import pandas as pd
 from scipy import stats
 import matplotlib.pyplot as plt
 import seaborn as sns
-import locale
+import logging
+import time
+
+
+def reset_log_config(logger):
+    out_log_file_name = "groom.log"
+    logging.basicConfig(encoding='utf-8', level=logging.DEBUG)
+    file_handler = logging.FileHandler(out_log_file_name)
+    logger.addHandler(file_handler)
+    return logger
 
 
 def open_config_file(confifile):
@@ -31,11 +40,6 @@ def open_config_file(confifile):
         raise ValueError("\nimpossible to read configuration file")
 
     return confidic
-
-
-def detect_and_create_dir(namenesteddir):
-    if not os.path.exists(namenesteddir):
-        os.makedirs(namenesteddir)
 
 
 def fullynumeric(mystring):

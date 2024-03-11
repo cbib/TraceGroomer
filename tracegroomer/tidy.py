@@ -7,10 +7,16 @@ user defined config file and args
 @author: johanna
 """
 import os
+import logging
 import pandas as pd
 import numpy as np
 import re
 import tracegroomer.utils as fg
+
+
+
+logger = logging.getLogger(__name__)
+logger = fg.reset_log_config(logger)
 
 
 def excelsheets2frames_dic(excel_file: str, confidic: dict) -> dict:
@@ -757,16 +763,20 @@ def transfer__abund_nan__to_all_tables(confidic, frames_dic, meta_path):
 
 def perform_type_prep(args, confidic, meta_path, targetedMetabo_path,
                       amount_mater_path, groom_out_path) -> None:
+
+
+    logger.info("happy!! why twice?")
     output_plots_dir = os.path.join(groom_out_path, "preview_plots")
     if args.isotopologues_preview:
-        fg.detect_and_create_dir(output_plots_dir)
-
-    fg.detect_and_create_dir(groom_out_path) # remove in future version
+        if not os.path.exists(output_plots_dir):
+            os.makedirs(output_plots_dir)
 
     if args.type_of_file == 'IsoCor_out_tsv':
         frames_dic = do_isocorOutput_prep(meta_path, targetedMetabo_path,
                                           args, confidic,
                                           amount_mater_path, output_plots_dir)
+        print("yeah!")
+        sys.exit(1)
     elif args.type_of_file == 'VIBMEC_xlsx':
         frames_dic = do_vib_prep(meta_path, targetedMetabo_path, args,
                                  confidic,

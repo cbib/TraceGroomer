@@ -2,8 +2,14 @@ import argparse
 import os
 import sys
 import logging
+import time
 import tracegroomer.utils as ut
 from tracegroomer.tidy import perform_type_prep
+
+
+logger = logging.getLogger(__name__)
+logger = ut.reset_log_config(logger)
+
 
 def prep_args() -> argparse.ArgumentParser:
     show_defaults = argparse.ArgumentDefaultsHelpFormatter
@@ -14,14 +20,11 @@ def prep_args() -> argparse.ArgumentParser:
                         help="Configuration file given as absolute path.")
 
     parser.add_argument('-lm', '--labeled_metabo_file', type=str, default=None,
-                        help="Labeled metabolomics input file, absolute path.") # TODO absolute? data subfolder ?
+                        help="Labeled metabolomics input file, absolute path.")
 
     parser.add_argument('-tf', '--type_of_file', type=str, default=None,
                         help="One of the following: \
                         IsoCor_out_tsv|VIBMEC_xlsx|generic_xlsx")
-
-    parser.add_argument("-o", "--out_path", type=str, default=None,
-                        help="Output directory (the data sub-folder) in absolute path.")
 
     # for abundance
     parser.add_argument("--under_detection_limit_set_nan",
@@ -90,18 +93,17 @@ def prep_args() -> argparse.ArgumentParser:
 
 
 def main() -> int:
-    logging.basicConfig(filename=None, encoding='utf-8', level=logging.DEBUG)
-    logger = logging.getLogger()
+    logger.info("\nTime: {}".format(time.strftime('%Y%m%d-%H.%M.%S')))
     parser = prep_args()
     args = parser.parse_args()
-
-    out_path = os.path.expanduser(args.out_path)
-
-    file_handler = logging.FileHandler('logs.log')  # TODO: set a good log dir. e.g out_path  ??
-    logger.addHandler(file_handler)
-
     logger.info(
         f"Running TraceGroomer with the following parameters:\n {args}\n")
+
+    supported_types = ["IsoCor_out_tsv", "VIBMEC_xlsx", "generic_xlsx"] # TODO: add tsv isotopologues absolute values alone
+    assert args.type_of_file in supported_types, logger.critical(
+        f"Error: type_of_file {args.type_of_file} not supported or misspelled. "
+        f"Supported types are: {supported_types}. "
+    )
 
     confidic = ut.open_config_file(os.path.expanduser(args.config_file))
 
@@ -113,27 +115,33 @@ def main() -> int:
                      'isotopologues']
     for k in expected_keys_makeready:
         assert k in confidic.keys(), logger.warning(
-            f"{k} : missing in configuration file! ")  # TODO challenge this
+            f"{k} : missing in configuration file! ")
+
+    out_path = os.path.expanduser(confidic['groom_out_path'])
+    assert os.path.exists(out_path), logger.critical(
+        f"ERROR. Directory {out_path} does not exist. Abort."
+    )
 
     targetedMetabo_path = os.path.expanduser(args.labeled_metabo_file)
-    # TODO verify it exists ??? located in data subfolder or not ?
+    assert os.path.isfile(targetedMetabo_path), logger.critical(
+        f"ERROR. Labeled metabolomics file {targetedMetabo_path} does not "
+        f"exist. Abort." )
 
     meta_path = os.path.join(out_path, f"{confidic['metadata']}.csv")
     # metadata is expected in the out path, which is the data sub-folder:
     assert os.path.isfile(meta_path), \
         logger.critical(
-                f"ERROR. Metadata file must exist and be located in the "
-                f"'out_path' (data subfolder) location: '{out_path}'. Abort!"
-        )
+            f"ERROR. Metadata file must exist and be located in the "
+            f"'out_path' (data subfolder) location: '{out_path}'. Abort.")
 
     amount_mater_path = args.amountMaterial_path
     if args.amountMaterial_path is not None:
         amount_mater_path = os.path.expanduser(args.amountMaterial_path)
 
-    # TODO: reactivate and continue logger in tidy
-    #perform_type_prep(args, confidic, meta_path, targetedMetabo_path,
-    #                  amount_mater_path, out_path, logger)
+    perform_type_prep(args, confidic, meta_path, targetedMetabo_path,
+                      amount_mater_path, out_path)
     return 0
+
 
 if __name__ == "__main__":
     sys.exit(main())
