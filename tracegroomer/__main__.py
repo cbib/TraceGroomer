@@ -35,7 +35,7 @@ def prep_args() -> argparse.ArgumentParser:
 
     parser.add_argument("--div_isotopologues_by_amount_material",
                         action=argparse.BooleanOptionalAction,
-                        default=True,  # TODO only for testing here, set to False
+                        default=True,  # TODO only for testing here, set to False for release !!!
                         help="Compute division of isotopologues absolute values by the amount of  \
                         material (after this, re-computes all derived metrics). \
                         If False, only total abundances are normalized.")
@@ -96,14 +96,15 @@ def prep_args() -> argparse.ArgumentParser:
 def main() -> int:
     logger = logging.getLogger(__name__)
     logger = ut.reset_log_config(logger)
-
     logger.info("\nTime: {}".format(time.strftime('%Y%m%d-%H.%M.%S')))
+
     parser = prep_args()
     args = parser.parse_args()
     logger.info(
         f"Running TraceGroomer with the following parameters:\n {args}\n")
 
-    supported_types = ["IsoCor_out_tsv", "VIBMEC_xlsx", "generic_xlsx"] # TODO: add ruletsv style !
+    supported_types = ["IsoCor_out_tsv", "rule_tsv",
+                       "generic_xlsx", "VIBMEC_xlsx"] # TODO: add ruletsv style !
     assert args.type_of_file in supported_types, logger.critical(
         f"Error: type_of_file {args.type_of_file} not supported or misspelled. "
         f"Supported types are: {supported_types}. ")
