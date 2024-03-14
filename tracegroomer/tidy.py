@@ -9,8 +9,6 @@ user defined config file and args
 import os
 import logging
 import pandas as pd
-import numpy as np
-import re
 import tracegroomer.utils as ut
 from typing import Dict, Union
 
@@ -117,15 +115,16 @@ class ComposedData:  # refactor this name
             tmp = self.frames_dict[x].T
             self.frames_dict[x] = tmp
 
-    def set_available_frames(self, confdict):
+    def true_key_value_available_frames(self, confdict):
         reverse_dict = dict()
-        avail_keys = list()
+        avail_dict = dict()
         for m in self.expected_keys_confdict:
             reverse_dict[confdict[m]] = m
         for h in self.frames_dict.keys():
-            avail_keys.append(reverse_dict[h])
+            if h is not None:
+                avail_dict[reverse_dict[h]] = h
 
-        self.available_frames = avail_keys
+        self.available_frames = avail_dict
 
     def load_metabolite_to_isotopologue_df(self, confdict):
         """df of correspondences between isotopologues and metabolites
@@ -140,10 +139,12 @@ class ComposedData:  # refactor this name
             isotopologues_full = list(self.frames_dict[confdict[
                                     "isotopologues"]].index)
 
-        self.metabolites_isos_df = ut.isotopologues_meaning_df(isotopologues_full)
+        self.metabolites_isos_df = ut.isotopologues_meaning_df(
+            isotopologues_full)
 
     def fill_missing_data(self, confdict) -> Dict[str, str]:
-        tmp, confdict_new = ut.complete_missing_frames( confdict, self.frames_dict,
+        tmp, confdict_new = ut.complete_missing_frames(
+            confdict, self.frames_dict,
             self.metadata, self.metabolites_isos_df)
         self.frames_dict = tmp
 
@@ -151,7 +152,8 @@ class ComposedData:  # refactor this name
 
     def save_isotopologues_preview(self, args, confdict, groom_out_path):
         compartmentalized_dict = ut.df_to__dic_bycomp(
-            self.frames_dict[confdict['isotopologue_proportions']], self.metadata)
+            self.frames_dict[confdict['isotopologue_proportions']],
+            self.metadata)
         output_plots_dir = os.path.join(groom_out_path, "preview_plots")
         if args.isotopologues_preview:
             if not os.path.exists(output_plots_dir):
@@ -224,7 +226,7 @@ class ComposedData:  # refactor this name
             )
             self.frames_dict[k] = tmp
 
-    def drop_metabolites_infile(self, exclude_list_file: Union[str,None]):
+    def drop_metabolites_infile(self, exclude_list_file: Union[str, None]):
         if exclude_list_file is not None:
             tmp = self.frames_dict.copy()
             logger.info("removing metabolites as specified by user in file:")
@@ -236,7 +238,7 @@ class ComposedData:  # refactor this name
                     mets_l = exclude_df.loc[
                         exclude_df["compartment"] == co, 'metabolite'].tolist()
                     unwanted_metabolites[co] = mets_l
-                tmp = ut.drop__metabolites_by_compart(tmp, unwanted_metabolites)
+                tmp = ut.drop__metabolites_by_compart(tmp, unwanted_metabolites) #TODO!!
             except FileNotFoundError as err_file:
                 logger.info(err_file)
             except Exception as e:
@@ -255,7 +257,7 @@ class ComposedData:  # refactor this name
             set_mets = set([i.split("_m+")[0] for i in isos_bad.index])
             bad_mets[co] = list(set_mets)
 
-        tmp = ut.drop__metabolites_by_compart(self.frames_dict, bad_mets)
+        tmp = ut.drop__metabolites_by_compart(self.frames_dict, bad_mets)  # TODO !!
         self.frames_dict = tmp
 
     def stomp_fraction_values(self, args,confdict):
@@ -272,20 +274,20 @@ class ComposedData:  # refactor this name
             confdict, self.frames_dict, self.metadata)
         self.frames_dict = tmp
 
-
 # end class
+
+
 def reshape_vib_data(targetedMetabo_path: str, args, confdict):
     frames_dict = ut.excelsheets2frames_dict(targetedMetabo_path, confdict)
     lod_values, blanks_df, internal_standards_df, bad_x_y = ut.pull_LOD_blanks_IS(
         frames_dict[confdict['abundances']])
 
     frames_dict = ut.reshape_frames_dict_elems(frames_dict, bad_x_y)
-    frames_dict = ut.abund_under_lod_set_nan(confdict, frames_dict,
-                                          lod_values,
-                                          args.under_detection_limit_set_nan)
+    frames_dict = ut.abund_under_lod_set_nan(
+        confdict, frames_dict, lod_values, args.under_detection_limit_set_nan)
 
-    frames_dict = ut.abund_subtract_blankavg(frames_dict, confdict,
-                                          blanks_df, args.subtract_blankavg)
+    frames_dict = ut.abund_subtract_blankavg(frames_dict, confdict, blanks_df,
+                                             args.subtract_blankavg)
 
     return frames_dict, internal_standards_df
 
@@ -341,7 +343,7 @@ def save_tables(frames_dict, groom_out_path) -> None:
         final_df = tmpli[0]    # reunify the compartments
         for i in range(1, len(tmpli)):
             final_df = pd.merge(final_df, tmpli[i], how='outer',
-                              left_index=True, right_index=True)
+                                left_index=True, right_index=True)
 
         final_df.index.name = "ID"
         final_df = final_df.reset_index()
@@ -358,7 +360,7 @@ def wrapper_common_steps(combo_data: ComposedData,
                          args, confdict, groom_out_path: str) -> None:
     combo_data.load_metabolite_to_isotopologue_df(confdict)
     confdict = combo_data.fill_missing_data(confdict)
-    combo_data.set_available_frames(confdict)
+    combo_data.true_key_value_available_frames(confdict)
 
     combo_data.save_isotopologues_preview(args, confdict, groom_out_path)
 
@@ -367,7 +369,7 @@ def wrapper_common_steps(combo_data: ComposedData,
     if combo_data.material_df is not None:
         logger.info("computing normalization by amount of material")
         if args.div_isotopologues_by_amount_material and (
-                "isotopologues" in combo_data.available_frames):
+                "isotopologues" in list(combo_data.available_frames.keys())):
             confdict = combo_data.normalize_isotopologues_by_material(
                 args, confdict)
         else:
@@ -379,7 +381,6 @@ def wrapper_common_steps(combo_data: ComposedData,
     combo_data.stomp_fraction_values(args, confdict)
     combo_data.transfer__abund_nan__to_all_tables(confdict)
     save_tables(combo_data.frames_dict, groom_out_path)  # TODO: too many decimals, set to 6 places for all dfs
-    logger.info(combo_data.frames_dict[confdict["mean_enrichment"]])  # TODO del
 
 
 def perform_type_prep(args, confdict, metadata_used_extension: str,
@@ -404,7 +405,6 @@ def perform_type_prep(args, confdict, metadata_used_extension: str,
         combo_data.generic_xlsx_load(targetedMetabo_path, args, confdict)
 
     elif args.type_of_file == 'VIBMEC_xlsx':
-        # args.div_isotopologues_by_amount_material = False #TODO delete
         combo_data.vib_data_load(targetedMetabo_path, args, confdict)
         combo_data.transpose_frames()
     # endif

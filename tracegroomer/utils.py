@@ -484,7 +484,7 @@ def drop__metabolites_by_compart(frames_dict_orig: dict,
     frames_dict = frames_dict_orig.copy()
     for tab_name in frames_dict.keys():
         for co in bad_metabolites_dic.keys():
-            if "isotopolog" in tab_name.lower():
+            if "isotopolog" in tab_name.lower(): # TODO:  this is fragile  !
                 tmpdf = frames_dict[tab_name][co]
                 to_drop_now_isos = list()
                 for i in list(tmpdf.index):
@@ -494,7 +494,7 @@ def drop__metabolites_by_compart(frames_dict_orig: dict,
                 tmpdf = tmpdf.drop(index=to_drop_now_isos)
                 frames_dict[tab_name][co] = tmpdf
 
-            elif "isotopolog" not in tab_name.lower():
+            elif "isotopolog" not in tab_name.lower(): # TODO: this is fragile !
                 tmpdf = frames_dict[tab_name][co]
                 to_drop_now = bad_metabolites_dic[co]
                 tmpdf = tmpdf.drop(index=to_drop_now)

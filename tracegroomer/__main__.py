@@ -59,8 +59,8 @@ def prep_args() -> argparse.ArgumentParser:
                         help="Plot isotopologue values, as given")
 
     parser.add_argument("--isosprop_min_admitted", default=-0.5, type=float,
-                        help="Metabolites whose isotopologues are less or equal \
-                        this cutoff are removed.")
+                        help="Metabolites whose isotopologues are less  \
+                        or equal to this cutoff, are removed.")
 
     parser.add_argument("--isosprop_stomp_values",
                         action=argparse.BooleanOptionalAction,
@@ -76,13 +76,13 @@ def prep_args() -> argparse.ArgumentParser:
     # for total abundance only if VIB data
     parser.add_argument("--under_detection_limit_set_nan",
                         action=argparse.BooleanOptionalAction,
-                        default=True, help="On VIB results. Any abundance inferior \
-                          to LOD (Limit Of Detection) is set as NaN.")  # np.nan
+                        default=True, help="On VIB results. Any abundance \
+                           < LOD (Limit Of Detection), is set as NaN.")
 
     parser.add_argument("--subtract_blankavg",
                         action=argparse.BooleanOptionalAction, default=True,
-                        help="On VIB results. From samples' abundances, subtracts  \
-                          the average of the blanks.")
+                        help="On VIB results. From samples' abundances,  \
+                          subtracts the average of the blanks.")
 
     return parser
 
@@ -106,7 +106,7 @@ def main() -> int:
         f"Supported types are: {supported_types}. ")
 
     confdict = ut.open_config_file(os.path.expanduser(args.config_file))
-    expected_keys_confdict = ['metadata','abundances', 'mean_enrichment',
+    expected_keys_confdict = ['metadata', 'abundances', 'mean_enrichment',
                               'isotopologue_proportions', 'isotopologues']
 
     for k in expected_keys_confdict:
