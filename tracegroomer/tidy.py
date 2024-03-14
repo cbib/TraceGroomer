@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 logger = ut.reset_log_config(logger)
 
 
-class Myclass:  # refactor this name
+class ComposedData:  # refactor this name
     def __init__(self, type_of_file):
         self.metadata: pd.DataFrame = None
         self.type_of_file: str = type_of_file
@@ -228,7 +228,7 @@ class Myclass:  # refactor this name
         if exclude_list_file is not None:
             tmp = self.frames_dict.copy()
             logger.info("removing metabolites as specified by user in file:")
-            logger.info(exclude_list_file, "\n")
+            logger.info(f"{exclude_list_file}")
             exclude_df = pd.read_csv(exclude_list_file, sep="\t", header=0)
             try:
                 unwanted_metabolites = dict()
@@ -354,60 +354,61 @@ def save_tables(frames_dict, groom_out_path) -> None:
         # note : do not clear zero rows, as gives problem pd.merge
 
 
-def wrapper_common_steps(myobj, args, confdict, groom_out_path) -> None:
-    myobj.load_metabolite_to_isotopologue_df(confdict)
-    confdict = myobj.fill_missing_data(confdict)
-    myobj.set_available_frames(confdict)
+def wrapper_common_steps(combo_data: ComposedData,
+                         args, confdict, groom_out_path: str) -> None:
+    combo_data.load_metabolite_to_isotopologue_df(confdict)
+    confdict = combo_data.fill_missing_data(confdict)
+    combo_data.set_available_frames(confdict)
 
-    myobj.save_isotopologues_preview(args, confdict, groom_out_path)
+    combo_data.save_isotopologues_preview(args, confdict, groom_out_path)
 
-    myobj.pull_internal_standard(confdict, args)
+    combo_data.pull_internal_standard(confdict, args)
 
-    if myobj.material_df is not None:
+    if combo_data.material_df is not None:
         logger.info("computing normalization by amount of material")
         if args.div_isotopologues_by_amount_material and (
-                "isotopologues" in myobj.available_frames):
-            confdict = myobj.normalize_isotopologues_by_material(
+                "isotopologues" in combo_data.available_frames):
+            confdict = combo_data.normalize_isotopologues_by_material(
                 args, confdict)
         else:
-            myobj.normalize_total_abundance_by_material(args, confdict)
-    myobj.normalize_by_internal_standard(args, confdict)
-    myobj.compartmentalize_frames_dict(confdict)
+            combo_data.normalize_total_abundance_by_material(args, confdict)
+    combo_data.normalize_by_internal_standard(args, confdict)
+    combo_data.compartmentalize_frames_dict(confdict)
     # last steps use compartmentalized frames
-    myobj.drop_metabolites_infile(args.remove_these_metabolites)
-    myobj.stomp_fraction_values(args, confdict)
-    myobj.transfer__abund_nan__to_all_tables(confdict)
-    save_tables(myobj.frames_dict, groom_out_path)  # TODO: too many decimals, set to 6 places for all dfs
-    logger.info(myobj.frames_dict[confdict["mean_enrichment"]])  # TODO del
+    combo_data.drop_metabolites_infile(args.remove_these_metabolites)
+    combo_data.stomp_fraction_values(args, confdict)
+    combo_data.transfer__abund_nan__to_all_tables(confdict)
+    save_tables(combo_data.frames_dict, groom_out_path)  # TODO: too many decimals, set to 6 places for all dfs
+    logger.info(combo_data.frames_dict[confdict["mean_enrichment"]])  # TODO del
 
 
 def perform_type_prep(args, confdict, metadata_used_extension: str,
                       targetedMetabo_path: str, groom_out_path
 ) -> None:
-    myobj = Myclass(args.type_of_file)
+    combo_data = ComposedData(args.type_of_file)
     logger.info("\nLoading data")
-    myobj.load_metadata(
+    combo_data.load_metadata(
         os.path.join(groom_out_path,
                      f"{confdict['metadata']}{metadata_used_extension}"))
 
-    myobj.load_amount_material_df(args.amountMaterial_path)
+    combo_data.load_amount_material_df(args.amountMaterial_path)
 
     if args.type_of_file == 'IsoCor_out_tsv':
-        myobj.isocor_data_load(targetedMetabo_path, args,  confdict)
+        combo_data.isocor_data_load(targetedMetabo_path, args,  confdict)
 
     elif args.type_of_file == 'rule_tsv':
         check_confdict_completeness(confdict)
-        myobj.rule_tsv_data_load(targetedMetabo_path, args, confdict)
+        combo_data.rule_tsv_data_load(targetedMetabo_path, args, confdict)
 
     elif args.type_of_file == 'generic_xlsx':
-        myobj.generic_xlsx_load(targetedMetabo_path, args, confdict)
+        combo_data.generic_xlsx_load(targetedMetabo_path, args, confdict)
 
     elif args.type_of_file == 'VIBMEC_xlsx':
         # args.div_isotopologues_by_amount_material = False #TODO delete
-        myobj.vib_data_load(targetedMetabo_path, args, confdict)
-        myobj.transpose_frames()
+        combo_data.vib_data_load(targetedMetabo_path, args, confdict)
+        combo_data.transpose_frames()
     # endif
-    wrapper_common_steps(myobj, args, confdict, groom_out_path)
+    wrapper_common_steps(combo_data, args, confdict, groom_out_path)
 
 
 
