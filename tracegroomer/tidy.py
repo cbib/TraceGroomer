@@ -18,26 +18,20 @@ from typing import Dict, Union
 logger = logging.getLogger(__name__)
 logger = ut.reset_log_config(logger)
 
-import warnings   # TODO?
-
-
-# Supressing only matplotlib warnings
-warnings.filterwarnings( "ignore", module = "matplotlib\..*" ) # TODO?
-
 
 class Myclass:  # refactor this name
     def __init__(self, type_of_file):
         self.metadata: pd.DataFrame = None
         self.type_of_file: str = type_of_file
-        self.all_metrics_normalized_by_material: bool = False
         self.material_df: pd.DataFrame = None
         self.instandard_abun_df: pd.DataFrame = None
         self.metabolites_to_drop_df: pd.DataFrame = None
         self.expected_keys_confdict = ['mean_enrichment',
                                        'isotopologue_proportions',
-                                      'isotopologues',
+                                       'isotopologues',
                                        'abundances']
         self.frames_dict: Dict[str, pd.DataFrame] = dict()
+        self.all_metrics_normalized_by_material: bool = False
 
     def load_metadata(self, metadata_path):
         self.metadata = ut.open_metadata(metadata_path)
@@ -95,8 +89,8 @@ class Myclass:  # refactor this name
     def vib_data_load(self, targetedMetabo_path, args, confdict):
         assert self.type_of_file == "VIBMEC_xlsx", \
             "function called for wrong type of file"
-        frames_dict, internal_standards_df =  hyhy(
-            targetedMetabo_path, args, confdict, self.metadata)
+        frames_dict, internal_standards_df = reshape_vib_data(
+            targetedMetabo_path, args, confdict)
         try:
             tmp = frames_dict[confdict['isotopologue_proportions']]
             new_col = ut.transformmyisotopologues(tmp.columns, "vib")
@@ -104,7 +98,8 @@ class Myclass:  # refactor this name
             frames_dict[confdict['isotopologue_proportions']] = tmp
         except Exception as e:
             logger.info(e)
-            logger.error("isotopologue_proportions missing or misspelled in config")
+            logger.error("isotopologue_proportions missing "
+                         "or misspelled in config")
 
         self.instandard_abun_df = internal_standards_df
         self.frames_dict = frames_dict
@@ -119,21 +114,21 @@ class Myclass:  # refactor this name
         proper to the given data"""
         try:
             isotopologues_full = list(self.frames_dict[confdict[
-            "isotopologue_proportions"]].index)
+                                     "isotopologue_proportions"]].index)
         except TypeError:
             isotopologues_full = list(self.frames_dict[confdict[
-            "isotopologues"]].index)
+                                      "isotopologues"]].index)
         except KeyError:
             isotopologues_full = list(self.frames_dict[confdict[
-            "isotopologues"]].index)
+                                    "isotopologues"]].index)
+
         self.metabolites_isos_df = ut.isotopologues_meaning_df(isotopologues_full)
 
-
-
-    def fill_missing_data(self, confdict):
+    def fill_missing_data(self, confdict) -> Dict[str, str]:
         tmp, confdict_new = ut.complete_missing_frames( confdict, self.frames_dict,
             self.metadata, self.metabolites_isos_df)
         self.frames_dict = tmp
+
         return confdict_new
 
     def save_isotopologues_preview(self, args, confdict, groom_out_path):
@@ -143,8 +138,9 @@ class Myclass:  # refactor this name
         if args.isotopologues_preview:
             if not os.path.exists(output_plots_dir):
                 os.makedirs(output_plots_dir)
-        ut.save_isos_preview(compartmentalized_dict,
-            self.metadata, output_plots_dir, args.isotopologues_preview)
+        ut.save_isos_preview(
+            compartmentalized_dict, self.metadata,
+            output_plots_dir, args.isotopologues_preview)
 
     def pull_internal_standard(self, confdict, args):
         if (self.instandard_abun_df is None) and (
@@ -153,7 +149,7 @@ class Myclass:  # refactor this name
             try:
                 x = self.frames_dict[confdict['abundances']].columns.tolist()
                 y = self.frames_dict[confdict['abundances']
-                    ].loc[args.use_internal_standard, :].tolist()
+                                     ].loc[args.use_internal_standard, :].tolist()
                 instandard_abun_df = pd.DataFrame(
                     {"sample": x,
                      args.use_internal_standard: y
@@ -168,13 +164,14 @@ class Myclass:  # refactor this name
         """when running normalization on the isotopologues absolute values,
         the other metrics are re-computed"""
         assert args.div_isotopologues_by_amount_material, "Erroneous call"
-        self.frames_dict =  ut.isosAbsol_divideby_amount_material(
+        self.frames_dict = ut.divide_by_amount_material(
             self.frames_dict, confdict,  self.material_df,
-            args.alternative_div_amount_material)
+            args.alternative_div_amount_material, metric="isotopologues")
         for k in ["isotopologue_proportions", "mean_enrichment", "abundances"]:
             # reset the metrics (except isotopologue absolute) for recomputing
-            del self.frames_dict[confdict[k]]; confdict[k] = None
-        # recompute
+            del self.frames_dict[confdict[k]]
+            confdict[k] = None
+        # recompute:
         new_frames_dict, new_confdict = ut.complete_missing_frames(
             confdict, self.frames_dict,
             self.metadata, self.metabolites_isos_df
@@ -187,23 +184,22 @@ class Myclass:  # refactor this name
     def normalize_total_abundance_by_material(self, args, confdict):
         """the abundances undergo normalization iif it was not done for the
         isotopologues absolute values  (see boolean attribute)"""
-        print(self.all_metrics_normalized_by_material)  # TODO delete
         if not self.all_metrics_normalized_by_material:  # bool
-            newframes_dict = ut.abund_divideby_amount_material(
+            newframes_dict = ut.divide_by_amount_material(
                 self.frames_dict, confdict, self.material_df,
-                args.alternative_div_amount_material)
+                args.alternative_div_amount_material, metric="abundances")
             self.frames_dict = newframes_dict
 
     def normalize_by_internal_standard(self, args, confdict):
         """Only the total abundances are divided by the internal standard"""
         if args.use_internal_standard is not None:
-            logger.info("performing normalization by internal standard")
+            logger.info("computing normalization by internal standard")
             frames_dict = ut.abund_divideby_internalStandard(
                 self.frames_dict, confdict, self.instandard_abun_df,
                 args.use_internal_standard)
             self.frames_dict = frames_dict
 
-    def compartmentalize_dict(self, confdict):  # todo: is this good ?
+    def compartmentalize_frames_dict(self, confdict):
         for k in self.frames_dict.keys():
             tmp = ut.df_to__dic_bycomp(
                 self.frames_dict[k], self.metadata
@@ -260,28 +256,20 @@ class Myclass:  # refactor this name
 
 
 # end class
-def hyhy(targetedMetabo_path, args, confdict, metadata):
+def reshape_vib_data(targetedMetabo_path: str, args, confdict):
     frames_dict = ut.excelsheets2frames_dict(targetedMetabo_path, confdict)
     lod_values, blanks_df, internal_standards_df, bad_x_y = ut.pull_LOD_blanks_IS(
         frames_dict[confdict['abundances']])
 
-    frames_dict = ut.reshape_frames_dict_elems(frames_dict, metadata, bad_x_y)
-    frames_dict = ut.abund_under_lod_set_nan(confdict, frames_dict, metadata,
+    frames_dict = ut.reshape_frames_dict_elems(frames_dict, bad_x_y)
+    frames_dict = ut.abund_under_lod_set_nan(confdict, frames_dict,
                                           lod_values,
                                           args.under_detection_limit_set_nan)
 
-    # frames_dict = ut.auto_drop_metabolites_uLOD(    #
-    #     confdict, frames_dict, metadata, lod_values,
-    #     args.auto_drop_metabolite_LOD_based)  # TODO delete as arg . NaN is enough
-
     frames_dict = ut.abund_subtract_blankavg(frames_dict, confdict,
                                           blanks_df, args.subtract_blankavg)
-    # transpose ????
-    # for k in frames_dict.keys():
-    #     tmp = frames_dict[k].T
-    #     frames_dict[k] = tmp
-    return frames_dict, internal_standards_df
 
+    return frames_dict, internal_standards_df
 
 
 def check_confdict_completeness(confdict):
@@ -347,15 +335,16 @@ def save_tables(frames_dict, groom_out_path) -> None:
 
 
 def perform_type_prep(args, confdict, metadata_used_extension: str,
-        targetedMetabo_path: str, groom_out_path
+                      targetedMetabo_path: str, groom_out_path
 ) -> None:
     myobj = Myclass(args.type_of_file)
-
-    myobj.load_metadata(os.path.join(groom_out_path,
+    logger.info("\nLoading data")
+    myobj.load_metadata(
+        os.path.join(groom_out_path,
                      f"{confdict['metadata']}{metadata_used_extension}"))
+
     myobj.load_material(args.amountMaterial_path)
 
-    #if args.type_of_file in ['IsoCor_out_tsv', 'rule_tsv', 'generic_xlsx']:
     if args.type_of_file == 'IsoCor_out_tsv':
         myobj.isocor_data_load(targetedMetabo_path, args,  confdict)
 
@@ -377,6 +366,7 @@ def perform_type_prep(args, confdict, metadata_used_extension: str,
         print("%%%%", k, "\n", myobj.frames_dict[k])
 
     myobj.save_isotopologues_preview(args, confdict, groom_out_path)
+
     myobj.pull_internal_standard(confdict, args)
 
     if myobj.material_df is not None:
@@ -386,18 +376,17 @@ def perform_type_prep(args, confdict, metadata_used_extension: str,
                 args, confdict)
         else:
             myobj.normalize_total_abundance_by_material(args, confdict)
-    logger.info(myobj.frames_dict[confdict["mean_enrichment"]]) # TODO del
     myobj.normalize_by_internal_standard(args, confdict)
-    myobj.compartmentalize_dict(confdict)
+    myobj.compartmentalize_frames_dict(confdict)
 
-    myobj.drop_metabolites_infile(args.remove_these_metabolites)  # TODO: real test as not working
-
+    # last steps use compartmentalized frames
+    myobj.drop_metabolites_infile(args.remove_these_metabolites)
     myobj.stomp_fraction_values(args, confdict)
     myobj.transfer__abund_nan__to_all_tables(confdict)
-    save_tables(myobj.frames_dict, groom_out_path)
+    save_tables(myobj.frames_dict, groom_out_path)  # TODO: too many decimals, set to 6 places for all dfs
+    logger.info(myobj.frames_dict[confdict["mean_enrichment"]])  # TODO del
 
 
-    logger.info("another message")
 
 
 

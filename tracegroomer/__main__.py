@@ -20,7 +20,7 @@ def prep_args() -> argparse.ArgumentParser:
 
     parser.add_argument('-tf', '--type_of_file', type=str, default=None,
                         help="One of the following: \
-                        IsoCor_out_tsv|VIBMEC_xlsx|generic_xlsx")  # todo :  add rule_tsv after IsoCor
+                        IsoCor_out_tsv|rule_tsv|VIBMEC_xlsx|generic_xlsx")
 
     parser.add_argument('--amountMaterial_path', type=str, default=None,
                         help="absolute path to the file .csv having the amount \
@@ -78,13 +78,6 @@ def prep_args() -> argparse.ArgumentParser:
                         default=True, help="On VIB results. Any abundance inferior \
                           to LOD (Limit Of Detection) is set as NaN.")  # np.nan
 
-    # parser.add_argument("--auto_drop_metabolite_LOD_based",  #TODO delete
-    #                     action=argparse.BooleanOptionalAction,
-    #                     default=True,
-    #                     help="On VIB results.  By compartment, a metabolite is \
-    #                       automatically rejected if all abundances are under \
-    #                       the given detection limit. Has effect in all tables.")
-
     parser.add_argument("--subtract_blankavg",
                         action=argparse.BooleanOptionalAction, default=True,
                         help="On VIB results. From samples' abundances, subtracts  \
@@ -101,10 +94,12 @@ def main() -> int:
     parser = prep_args()
     args = parser.parse_args()
     logger.info(
-        f"Running TraceGroomer with the following parameters:\n {args}\n")
+        f"Running TraceGroomer with the following parameters:")
+    for x in vars(args).keys():
+        logger.info(f"{x} = {vars(args)[x]} ")
 
     supported_types = ["IsoCor_out_tsv", "rule_tsv",
-                       "generic_xlsx", "VIBMEC_xlsx"] # TODO: add ruletsv style !
+                       "generic_xlsx", "VIBMEC_xlsx"]
     assert args.type_of_file in supported_types, logger.critical(
         f"Error: type_of_file {args.type_of_file} not supported or misspelled. "
         f"Supported types are: {supported_types}. ")
