@@ -23,21 +23,22 @@ def prep_args() -> argparse.ArgumentParser:
                         IsoCor_out_tsv|rule_tsv|VIBMEC_xlsx|generic_xlsx")
 
     parser.add_argument('--amountMaterial_path', type=str, default=None,
-                        help="absolute path to the file .csv having the amount \
+                        help="absolute path to the file having the amount \
                            of material (number of cells, tissue weight, etc) \
-                           by sample, for the abundances normalization.")  # related to --div_isotopologues_amount_material
+                           by sample, for the normalization.")
 
     parser.add_argument("--alternative_div_amount_material",
-                        action=argparse.BooleanOptionalAction, default=False,
-                        help="When dividing abundances by the amount of  \
+                        action=argparse.BooleanOptionalAction, default=True,
+                        help="When dividing values by the amount of  \
                         material, also multiplies by 'mean(amountMaterial)' \
                         to stay in abundance units.")
 
     parser.add_argument("--div_isotopologues_by_amount_material",
                         action=argparse.BooleanOptionalAction,
-                        default=False,  # TODO only for testing here, set to False for release !!!
-                        help="Compute division of isotopologues absolute values by the amount of  \
-                        material (after this, re-computes all derived metrics). \
+                        default=True,
+                        help="Apply normalization by the amount of material, \
+                        at the level of isotopologue absolute values. \
+                        After this, re-computes all derived metrics. \
                         If False, only total abundances are normalized.")
 
     parser.add_argument("--use_internal_standard", default=None, type=str,
@@ -47,7 +48,7 @@ def prep_args() -> argparse.ArgumentParser:
                         By default is not performed.')
 
     parser.add_argument("--remove_these_metabolites", default=None, type=str,
-                        help="Absolute path to the .csv file with columns:  \
+                        help="Absolute path to the file with columns:  \
                         compartment, metabolite; listing the metabolites to \
                         be completely excluded (you know what you are doing)")
 
@@ -101,12 +102,12 @@ def main() -> int:
     supported_types = ["IsoCor_out_tsv", "rule_tsv",
                        "generic_xlsx", "VIBMEC_xlsx"]
     assert args.type_of_file in supported_types, logger.critical(
-        f"Error: type_of_file {args.type_of_file} not supported or misspelled. "
+        f"Error: type_of_file {args.type_of_file} unsupported or misspelled. "
         f"Supported types are: {supported_types}. ")
 
     confdict = ut.open_config_file(os.path.expanduser(args.config_file))
     expected_keys_confdict = ['metadata','abundances', 'mean_enrichment',
-                     'isotopologue_proportions', 'isotopologues']
+                              'isotopologue_proportions', 'isotopologues']
 
     for k in expected_keys_confdict:
         if k not in confdict.keys():
@@ -125,8 +126,8 @@ def main() -> int:
     # metadata is expected in the out path, which is the data sub-folder:
     metadata_used_extension = None
     for extension in [".tsv", ".csv"]:
-        if os.path.isfile(os.path.join(out_path,
-                                 f"{confdict['metadata']}{extension}")):
+        if os.path.isfile(os.path.join(
+                out_path, f"{confdict['metadata']}{extension}")):
             metadata_used_extension = extension
     assert metadata_used_extension is not None, logger.critical(
             f"ERROR. Metadata file '{confdict['metadata']}' must exist in the"

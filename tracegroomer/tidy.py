@@ -37,7 +37,7 @@ class Myclass:  # refactor this name
         self.metadata = ut.open_metadata(metadata_path)
         ut.verify_metadata_sample_not_duplicated(self.metadata)
 
-    def load_material(self, amount_material_path):
+    def load_amount_material_df(self, amount_material_path):
         if amount_material_path is not None:
             self.material_df = ut.open_amount_material(amount_material_path)
 
@@ -53,16 +53,23 @@ class Myclass:  # refactor this name
     def rule_tsv_data_load(self, targetedMetabo_path, args, confdict):
         assert self.type_of_file == "rule_tsv", "wrong type of file"
         data_df = pd.read_csv(targetedMetabo_path, sep="\t")
-        data_df.set_index([confdict['columns_variable_description']['identifier']],
+        data_df.set_index([confdict[
+                               'columns_variable_description']['identifier']],
                           inplace=True)
-        variable_df = pd.read_csv(os.path.join(confdict['groom_out_path'],
-             f"{confdict['variable_description']}.tsv"), sep="\t")
+        variable_df = pd.read_csv(
+            os.path.join(confdict['groom_out_path'],
+                         f"{confdict['variable_description']}.tsv"), sep="\t"
+        )
 
-        isonames = variable_df[confdict['columns_variable_description']['compound']].str.cat(
-            variable_df[confdict['columns_variable_description']['isotopologue_number']].astype(str),
-                                         sep="_m+")
+        isonames = variable_df[confdict[
+            'columns_variable_description']['compound']].str.cat(
+            variable_df[
+                confdict['columns_variable_description']['isotopologue_number']
+                        ].astype(str),  sep="_m+")
         variable_df = variable_df.assign(isotopologue_name=isonames)
-        variable_df.set_index([confdict['columns_variable_description']['identifier']], inplace=True)
+        variable_df.set_index([confdict[
+                                   'columns_variable_description'
+                               ]['identifier']], inplace=True)
         # secure names matching:
         tmp = variable_df.T[list(data_df.index)]  # same order as data matrix
         variable_df = tmp.T
@@ -73,12 +80,13 @@ class Myclass:  # refactor this name
         assert self.type_of_file == "generic_xlsx", \
             "function called for wrong type of file, must be generic xlsx"
         frames_dict = ut.excelsheets2frames_dict(targetedMetabo_path, confdict)
-        tabs_isotopologues =  [
-            x for x in [confdict['isotopologue_proportions'], confdict['isotopologues'],
-                        ] if x is not None]  #[s for s in frames_dict.keys() if  "isotopol" in s.lower()]
+        tabs_isotopologues = [
+            x for x in [confdict['isotopologue_proportions'],
+                        confdict['isotopologues'],
+                        ] if x is not None]
         assert len(tabs_isotopologues) >= 1, logger.warning(
               "Bad or no isotopologues input")
-        for tab in tabs_isotopologues:  # tabs are not split by compartment here
+        for tab in tabs_isotopologues:  # tabs  not split by compartment yet
             tmp = frames_dict[tab]
             new_col = ut.transformmyisotopologues(tmp.columns, "generic")
             tmp.columns = new_col
@@ -108,6 +116,16 @@ class Myclass:  # refactor this name
         for x in self.frames_dict.keys():
             tmp = self.frames_dict[x].T
             self.frames_dict[x] = tmp
+
+    def set_available_frames(self, confdict):
+        reverse_dict = dict()
+        avail_keys = list()
+        for m in self.expected_keys_confdict:
+            reverse_dict[confdict[m]] = m
+        for h in self.frames_dict.keys():
+            avail_keys.append(reverse_dict[h])
+
+        self.available_frames = avail_keys
 
     def load_metabolite_to_isotopologue_df(self, confdict):
         """df of correspondences between isotopologues and metabolites
@@ -277,12 +295,14 @@ def check_confdict_completeness(confdict):
     logger.info("further checking configuration, must include variables "
                 "description")
     expected_level1 = ['variable_description', 'columns_variable_description']
-    assert set(expected_level1).issubset(set(list(confdict.keys()))), logger.critical(
+    assert set(expected_level1).issubset(set(list(confdict.keys()))), \
+        logger.critical(
         f"missing one or more of '{expected_level1}' in configuration")
     expected_level2 = ['identifier', 'compound', 'isotopologue_number']
     assert set(expected_level2).issubset(
-        set(list(confdict['columns_variable_description'].keys()))), logger.critical(
-        f"missing one or more of '{expected_level2}' in columns_variable_description")
+        set(list(confdict['columns_variable_description'].keys()))), \
+        logger.critical(f"missing one or more of '{expected_level2}'"
+                        f" in columns_variable_description")
 
 
 def isosprop_stomp_values(frames_dict, confdict, isosprop_stomp_vals: bool):
@@ -334,6 +354,33 @@ def save_tables(frames_dict, groom_out_path) -> None:
         # note : do not clear zero rows, as gives problem pd.merge
 
 
+def wrapper_common_steps(myobj, args, confdict, groom_out_path) -> None:
+    myobj.load_metabolite_to_isotopologue_df(confdict)
+    confdict = myobj.fill_missing_data(confdict)
+    myobj.set_available_frames(confdict)
+
+    myobj.save_isotopologues_preview(args, confdict, groom_out_path)
+
+    myobj.pull_internal_standard(confdict, args)
+
+    if myobj.material_df is not None:
+        logger.info("computing normalization by amount of material")
+        if args.div_isotopologues_by_amount_material and (
+                "isotopologues" in myobj.available_frames):
+            confdict = myobj.normalize_isotopologues_by_material(
+                args, confdict)
+        else:
+            myobj.normalize_total_abundance_by_material(args, confdict)
+    myobj.normalize_by_internal_standard(args, confdict)
+    myobj.compartmentalize_frames_dict(confdict)
+    # last steps use compartmentalized frames
+    myobj.drop_metabolites_infile(args.remove_these_metabolites)
+    myobj.stomp_fraction_values(args, confdict)
+    myobj.transfer__abund_nan__to_all_tables(confdict)
+    save_tables(myobj.frames_dict, groom_out_path)  # TODO: too many decimals, set to 6 places for all dfs
+    logger.info(myobj.frames_dict[confdict["mean_enrichment"]])  # TODO del
+
+
 def perform_type_prep(args, confdict, metadata_used_extension: str,
                       targetedMetabo_path: str, groom_out_path
 ) -> None:
@@ -343,7 +390,7 @@ def perform_type_prep(args, confdict, metadata_used_extension: str,
         os.path.join(groom_out_path,
                      f"{confdict['metadata']}{metadata_used_extension}"))
 
-    myobj.load_material(args.amountMaterial_path)
+    myobj.load_amount_material_df(args.amountMaterial_path)
 
     if args.type_of_file == 'IsoCor_out_tsv':
         myobj.isocor_data_load(targetedMetabo_path, args,  confdict)
@@ -356,35 +403,13 @@ def perform_type_prep(args, confdict, metadata_used_extension: str,
         myobj.generic_xlsx_load(targetedMetabo_path, args, confdict)
 
     elif args.type_of_file == 'VIBMEC_xlsx':
+        # args.div_isotopologues_by_amount_material = False #TODO delete
         myobj.vib_data_load(targetedMetabo_path, args, confdict)
         myobj.transpose_frames()
     # endif
+    wrapper_common_steps(myobj, args, confdict, groom_out_path)
 
-    myobj.load_metabolite_to_isotopologue_df(confdict)
-    confdict = myobj.fill_missing_data(confdict)
-    for k in myobj.frames_dict.keys():
-        print("%%%%", k, "\n", myobj.frames_dict[k])
 
-    myobj.save_isotopologues_preview(args, confdict, groom_out_path)
-
-    myobj.pull_internal_standard(confdict, args)
-
-    if myobj.material_df is not None:
-        logger.info("computing normalization by amount of material")
-        if args.div_isotopologues_by_amount_material:
-            confdict = myobj.normalize_isotopologues_by_material(
-                args, confdict)
-        else:
-            myobj.normalize_total_abundance_by_material(args, confdict)
-    myobj.normalize_by_internal_standard(args, confdict)
-    myobj.compartmentalize_frames_dict(confdict)
-
-    # last steps use compartmentalized frames
-    myobj.drop_metabolites_infile(args.remove_these_metabolites)
-    myobj.stomp_fraction_values(args, confdict)
-    myobj.transfer__abund_nan__to_all_tables(confdict)
-    save_tables(myobj.frames_dict, groom_out_path)  # TODO: too many decimals, set to 6 places for all dfs
-    logger.info(myobj.frames_dict[confdict["mean_enrichment"]])  # TODO del
 
 
 

@@ -145,7 +145,7 @@ def compute_MEorFC_from_isotopologues_proportions(df, metabos_isos_df):
     for m in metabos_uniq:
         isos_here = metabos_isos_df.loc[
             metabos_isos_df['metabolite'] == m, 'isotopologue_name']
-        coefs = [int(i.split("_m+")[1]) for i in isos_here.tolist()] # 0, 1, 2, etc
+        coefs = [int(i.split("_m+")[1]) for i in isos_here.tolist()]  # 0, 1, 2, etc
         sub_df = isos_prop.loc[isos_here, :]
         sub_df['coefs'] = coefs
         # compute the factors, produce another pandas df coefs_fracs_prod
@@ -313,7 +313,8 @@ def verify_metadata_sample_not_duplicated(metadata_df) -> None:
 def isotopologues_meaning_df(isotopologues_full_list):
     """
     input: list of isotopologues ['cit_m+0', 'cit_m+1', ...]
-       note: extracted from the colnames of the input isotopologues (auto-detected any table of isotopologues)
+       note: extracted from the colnames of the input isotopologues
+       (auto-detected any table of isotopologues)
     output: a dataframe in this style:
         metabolite   m+x    isotopologue_name
         cit          m+0    cit_m+0
@@ -443,10 +444,7 @@ def abund_divideby_internalStandard(frames_dict, confdict,
                                     use_internal_standard: Union[str, None]):
     # compulsory to subset strict one column as some formats can give > 1
     try:
-        internal_standard_df = internal_standard_df[use_internal_standard] #use_internal_standard
-        # assert use_internal_standard in internal_standard_df.columns, "\
-         #             Error, that internal standard is not present in the data"
-        # replace zeros to avoid zero division, uses min of the pd series :
+        internal_standard_df = internal_standard_df[use_internal_standard]
         internal_standard_df[internal_standard_df == 0] = \
             internal_standard_df[internal_standard_df > 0].min()
 
@@ -458,7 +456,6 @@ def abund_divideby_internalStandard(frames_dict, confdict,
         pass
 
     return frames_dict
-
 
 
 def divide_by_amount_material(frames_dict: dict, confdict: dict,
@@ -509,8 +506,9 @@ def drop__metabolites_by_compart(frames_dict_orig: dict,
 def transfer__abund_nan__to_all_tables(confdict, frames_dict, metadata):
     """propagates nan from abundance
     # to isotopologues and fractional contributions"""
-    isos_tables = [ x for x in
-        [confdict['isotopologues'], confdict['isotopologue_proportions']] if x is not None ]
+    isos_tables = [ x for x in [confdict['isotopologues'],
+                                confdict['isotopologue_proportions']
+                                ] if x is not None ]
     for co in metadata['compartment'].unique().tolist():
         abu_co = frames_dict[confdict['abundances']][co]
         frac_co = frames_dict[confdict['mean_enrichment']][co]
