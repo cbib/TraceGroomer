@@ -3,11 +3,10 @@ from unittest import TestCase
 import pandas as pd
 import numpy as np
 
-from tracegroomer import tidy
 from tracegroomer import utils
 
 class Test(TestCase):
-    def test_compute_sums_isotopol_props(self):  # TODO: replace by correct function
+    def test_compute_sums_isotopol_props(self):
         df = pd.DataFrame({"metabolite": ['a', 'a', 'b', 'b'],
               "col1": [0.3,0.7, 0.2,0.8],
               "col2": [0.7,0.3, 0.4,0.6]})

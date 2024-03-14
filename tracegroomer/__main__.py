@@ -35,7 +35,7 @@ def prep_args() -> argparse.ArgumentParser:
 
     parser.add_argument("--div_isotopologues_by_amount_material",
                         action=argparse.BooleanOptionalAction,
-                        default=True,  # TODO only for testing here, set to False for release !!!
+                        default=False,  # TODO only for testing here, set to False for release !!!
                         help="Compute division of isotopologues absolute values by the amount of  \
                         material (after this, re-computes all derived metrics). \
                         If False, only total abundances are normalized.")
@@ -78,12 +78,12 @@ def prep_args() -> argparse.ArgumentParser:
                         default=True, help="On VIB results. Any abundance inferior \
                           to LOD (Limit Of Detection) is set as NaN.")  # np.nan
 
-    parser.add_argument("--auto_drop_metabolite_LOD_based",
-                        action=argparse.BooleanOptionalAction,
-                        default=True,
-                        help="On VIB results.  By compartment, a metabolite is \
-                          automatically rejected if all abundances are under \
-                          the given detection limit. Has effect in all tables.")
+    # parser.add_argument("--auto_drop_metabolite_LOD_based",  #TODO delete
+    #                     action=argparse.BooleanOptionalAction,
+    #                     default=True,
+    #                     help="On VIB results.  By compartment, a metabolite is \
+    #                       automatically rejected if all abundances are under \
+    #                       the given detection limit. Has effect in all tables.")
 
     parser.add_argument("--subtract_blankavg",
                         action=argparse.BooleanOptionalAction, default=True,
@@ -112,9 +112,11 @@ def main() -> int:
     confdict = ut.open_config_file(os.path.expanduser(args.config_file))
     expected_keys_confdict = ['metadata','abundances', 'mean_enrichment',
                      'isotopologue_proportions', 'isotopologues']
+
     for k in expected_keys_confdict:
-        assert k in confdict.keys(), logger.warning(
-            f"{k} : missing in configuration file! ")
+        if k not in confdict.keys():
+            logger.warning(f"{k} : missing in configuration file! ")
+            confdict[k] = None
 
     out_path = os.path.expanduser(confdict['groom_out_path'])
     assert os.path.exists(out_path), logger.critical(

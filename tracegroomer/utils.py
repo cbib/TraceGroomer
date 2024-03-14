@@ -15,6 +15,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import logging
 import time
+import re
 from typing import Union
 
 
@@ -468,13 +469,13 @@ def abund_divideby_amount_material(frames_dict: dict, confdict: dict,
             material_avg = material_df.iloc[:, 0].mean()
             material_avg_ser = pd.Series([float(material_avg) for i in
                                           range(material_df.shape[0])],
-                                          index=material_df_s.index)
+                                         index=material_df.index)
             tmp = abund_df.div(material_df.iloc[:, 0], axis=1)
             tmp = tmp.mul(material_avg_ser, axis=1)
         else:
             tmp = abund_df.div(material_df.iloc[:, 0],  axis=1)
 
-        frames_dict[confdict['isotopologues']] = tmp
+        frames_dict[confdict['abundances']] = tmp
 
     return frames_dict
 
@@ -526,9 +527,8 @@ def drop__metabolites_by_compart(frames_dict_orig: dict,
 def transfer__abund_nan__to_all_tables(confdict, frames_dict, metadata):
     """propagates nan from abundance
     # to isotopologues and fractional contributions"""
-    isos_tables = [
-        confdict['isotopologues'], confdict['isotopologue_proportions']
-    ]
+    isos_tables = [ x for x in
+        [confdict['isotopologues'], confdict['isotopologue_proportions']] if x is not None ]
     for co in metadata['compartment'].unique().tolist():
         abu_co = frames_dict[confdict['abundances']][co]
         frac_co = frames_dict[confdict['mean_enrichment']][co]
@@ -561,25 +561,6 @@ def compute_sums_isotopol_props(dfT):
     return sums_df
 
 
-# ############ VIB dedicated:
-
-def abund_subtract_blankavg(frames_dict: dict, confdict: dict,
-                            blanks_df: pd.Series, subtract_blankavg: bool):
-    """on VIB data"""
-    abund_dic = frames_dict[confdict['abundances']].copy()
-    if subtract_blankavg:
-        for compartment in abund_dic.keys():
-            blanks_df_s = blanks_df[list(abund_dic[compartment].columns)]
-            blanksAvg_s = blanks_df_s.mean(axis=0)
-            abu_df_T = abund_dic[compartment].T
-            tmp = abu_df_T.subtract(blanksAvg_s, axis='index')
-            tmp[tmp < 0] = 0
-            abund_dic[compartment] = tmp.T
-
-        frames_dict[confdict['abundances']] = abund_dic
-
-    return frames_dict
-
 def excelsheets2frames_dict(excel_file: str, confdict: dict) -> dict:
     """Extracts data from VIB or generic xlsx files"""
     frames_dict = dict()
@@ -608,29 +589,30 @@ def excelsheets2frames_dict(excel_file: str, confdict: dict) -> dict:
     return frames_dict
 
 
-def auto_drop_metabolites_uLOD(confdict, frames_dict, metadata, lod_values,
-                               auto_drop_metabolite_LOD_based: bool) -> dict:
-    """Applied on VIB data as it provides Limit of Detection"""
-    # affects all the datasets in frames_dict
-    auto_bad_metabolites = dict()
-    compartments = metadata['compartment'].unique().tolist()
-    for k in compartments:
-        auto_bad_metabolites[k] = list()
+# ############ VIB dedicated:
 
-    if auto_drop_metabolite_LOD_based:
-        # drop metabolite if all its values are under LOD
-        for co in compartments:
-            abund_co = frames_dict[confdict['abundances']][co]
-            abund_coT = abund_co.T
-            for i, r in abund_coT.iterrows():
-                nb_nan = abund_coT.loc[i, :].isna().sum()
-                nb_under_LOD = (abund_coT.loc[i, :] < lod_values[i]).sum()
-                if (nb_under_LOD == r.size) or (nb_nan == r.size):
-                    auto_bad_metabolites[co].append(i)
-        frames_dict = drop__metabolites_by_compart(frames_dict,
-                                                  auto_bad_metabolites)
+def abund_subtract_blankavg(frames_dict: dict, confdict: dict,
+                            blanks_df: pd.Series, subtract_blankavg: bool):
+    """on VIB data"""
+    #abund_dic = frames_dict[confdict['abundances']].copy()
+    abund_df = frames_dict[confdict['abundances']].copy()
+    if subtract_blankavg:
+        blank_avg = blanks_df.mean(axis=0)
+        tmp = abund_df.T.subtract(blank_avg, axis='index')
+        tmp[tmp < 0] = 0
+        abund_df = tmp.T
+        # for compartment in abund_dic.keys():
+        #     blanks_df_s = blanks_df[list(abund_dic[compartment].columns)]
+        #     blanksAvg_s = blanks_df_s.mean(axis=0)
+        #     abu_df_T = abund_dic[compartment].T
+        #     tmp = abu_df_T.subtract(blanksAvg_s, axis='index')
+        #     tmp[tmp < 0] = 0
+        #     abund_dic[compartment] = tmp.T
+
+        frames_dict[confdict['abundances']] =  abund_df  #abund_dic
 
     return frames_dict
+
 
 def pull_LOD_blanks_IS(abund_df) -> tuple[pd.Series, pd.DataFrame,
                                           pd.DataFrame, dict]:
@@ -690,21 +672,13 @@ def reshape_frames_dict_elems(frames_dict: dict, metadata: pd.DataFrame,
     exclude from each dataframe the rows and columns
     that are specified in the todrop_x_y dictionary
     """
-    trans_dic = dict()
     for k in frames_dict.keys():
         df = frames_dict[k]
         df = df.loc[:, ~df.columns.isin(todrop_x_y["x"])]
         df = df.loc[~df.index.isin(todrop_x_y["y"]), :]
-        compartments = metadata['compartment'].unique().tolist()
-        trans_dic[k] = dict()
-        for co in compartments:
-            metada_co = metadata.loc[metadata['compartment'] == co, :]
-            df_co = df.loc[metada_co['original_name'], :]
-            trans_dic[k][co] = df_co
+        frames_dict[k] = df
 
-    frames_dict = trans_dic.copy()
     return frames_dict
-
 
 
 def abund_under_lod_set_nan(confdict, frames_dict, metadata,
@@ -712,64 +686,25 @@ def abund_under_lod_set_nan(confdict, frames_dict, metadata,
                             under_detection_limit_set_nan) -> dict:
     """on VIB data """
     if under_detection_limit_set_nan:
-        for co in metadata['compartment'].unique().tolist():
-            abund_co = frames_dict[confdict['abundances']][co]
-            abund_coT = abund_co.T
-            for i, r in abund_coT.iterrows():
-                # avoid future error "FutureWarning: ChainedAssignmentError":
-                tmp = abund_coT.loc[i, :].copy()
-                tmp.loc[tmp < lod_values[i]] = np.nan
-                abund_coT.loc[i, :] = tmp
-            frames_dict[confdict['abundances']][co] = abund_coT.T
+        abund_T = frames_dict[confdict['abundances']].T
+        for i, r in abund_T.iterrows():
+            tmp = abund_T.loc[i, :].copy()
+            tmp.loc[tmp < lod_values[i]] = np.nan
+            abund_T.loc[i, :] = tmp
+        frames_dict[confdict['abundances']] = abund_T.T
+
+        # for co in metadata['compartment'].unique().tolist():
+        #     abund_co = frames_dict[confdict['abundances']][co]
+        #     abund_coT = abund_co.T
+        #     for i, r in abund_coT.iterrows():
+        #         # avoid future error "FutureWarning: ChainedAssignmentError":
+        #         tmp = abund_coT.loc[i, :].copy()
+        #         tmp.loc[tmp < lod_values[i]] = np.nan
+        #         abund_coT.loc[i, :] = tmp
+        #     frames_dict[confdict['abundances']][co] = abund_coT.T
 
     return frames_dict
 
-
-def do_vib_prep(meta_path, targetedMetabo_path, args, confdict,
-                amount_mater_path, output_plots_dir):
-    # the order of the steps is the one recommended by VIB
-    frames_dict = excelsheets2frames_dict(targetedMetabo_path, confdict)
-    metadata = open_metadata(meta_path)
-    # ut.verify_metadata_sample_not_duplicated(metadata)  # TODO del
-    abundance_df = frames_dict[confdict['abundances']]
-    lod_values, blanks_df, internal_standards_df, bad_x_y = pull_LOD_blanks_IS(
-        abundance_df)
-
-    frames_dict = reshape_frames_dict_elems(frames_dict, metadata, bad_x_y)
-
-    frames_dict = abund_under_lod_set_nan(confdict, frames_dict, metadata,
-                                         lod_values,
-                                         args.under_detection_limit_set_nan)
-
-    frames_dict = auto_drop_metabolites_uLOD(confdict, frames_dict, metadata,
-                                            lod_values, args.
-                                            auto_drop_metabolite_LOD_based)
-    frames_dict = abund_subtract_blankavg(frames_dict, confdict,
-                                         blanks_df, args.subtract_blankavg)
-
-    arg_alt_div_amount_material = args.alternative_div_amount_material
-    frames_dict = abund_divideby_amount_material(frames_dict, confdict,  # VIB
-                                                amount_mater_path,
-                                                arg_alt_div_amount_material)
-
-    frames_dict = abund_divideby_internalStandard(frames_dict, confdict,
-                                                 internal_standards_df,
-                                                 args.use_internal_standard)
-
-    # transform isotopologues names to the easier "m+x" style:
-    for tab in frames_dict.keys():
-        if "isotopol" in tab.lower():
-            for co in frames_dict[tab]:
-                tmp = frames_dict[tab][co]
-                new_col = transformmyisotopologues(tmp.columns, "vib")
-                tmp.columns = new_col
-                frames_dict[tab][co] = tmp
-    # end for
-    save_isos_preview(frames_dict[confdict['isotopologue_proportions']],
-                      metadata,
-                      output_plots_dir, args.isotopologues_preview)
-
-    return frames_dict
 
 
 def transformmyisotopologues(isos_list, style):
