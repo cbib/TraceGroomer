@@ -24,12 +24,12 @@ class CompositeData:  # refactor this name
         self.material_df: pd.DataFrame = None
         self.internal_standard_abun_df: pd.DataFrame = None
         self.metabolites_to_drop_df: pd.DataFrame = None
+        self.frames_dict: Dict[str, pd.DataFrame] = dict()
+        self.all_metrics_normalized_by_material: bool = False
         self.expected_keys_confdict = ['mean_enrichment',
                                        'isotopologue_proportions',
                                        'isotopologues',
                                        'abundances']
-        self.frames_dict: Dict[str, pd.DataFrame] = dict()
-        self.all_metrics_normalized_by_material: bool = False
 
     def load_metadata(self, metadata_path):
         self.metadata = ut.open_metadata(metadata_path)
@@ -46,7 +46,7 @@ class CompositeData:  # refactor this name
             self.metabolites_to_drop_df = ut.open_metabolites_to_drop(
                 exclude_list_file)
 
-    def isocor_data_load(self, targetedMetabo_path, args, confdict):
+    def isocor_data_load(self, targetedMetabo_path, confdict):
         assert self.type_of_file == "IsoCor_out_tsv", \
             "function 'isocor_data_load' called for wrong type of file"
         isocor__df = pd.read_csv(targetedMetabo_path, sep="\t")
@@ -54,7 +54,7 @@ class CompositeData:  # refactor this name
 
         self.frames_dict = frames_dict
 
-    def rule_tsv_data_load(self, targetedMetabo_path, args, confdict):
+    def rule_tsv_data_load(self, targetedMetabo_path, confdict):
         assert self.type_of_file == "rule_tsv", "wrong type of file"
         data_df = pd.read_csv(targetedMetabo_path, sep="\t")
         data_df.set_index([confdict[
@@ -62,13 +62,12 @@ class CompositeData:  # refactor this name
                           inplace=True)
         variable_df = pd.read_csv(
             os.path.join(confdict['groom_out_path'],
-                         f"{confdict['variable_description']}.tsv"), sep="\t"
-        )
+                         f"{confdict['variable_description']}.tsv"), sep="\t")
 
         isonames = variable_df[confdict[
             'columns_variable_description']['compound']].str.cat(
-            variable_df[
-                confdict['columns_variable_description']['isotopologue_number']
+            variable_df[confdict[
+                'columns_variable_description']['isotopologue_number']
                         ].astype(str),  sep="_m+")
         variable_df = variable_df.assign(isotopologue_name=isonames)
         variable_df.set_index([confdict[
@@ -80,7 +79,7 @@ class CompositeData:  # refactor this name
         data_df.index = variable_df['isotopologue_name']
         self.frames_dict[confdict["isotopologues"]] = data_df
 
-    def generic_xlsx_load(self, targetedMetabo_path, args, confdict):
+    def generic_xlsx_load(self, targetedMetabo_path, confdict):
         assert self.type_of_file == "generic_xlsx", \
             "function called for wrong type of file, must be generic xlsx"
         frames_dict = ut.excelsheets2frames_dict(targetedMetabo_path, confdict)
@@ -94,14 +93,14 @@ class CompositeData:  # refactor this name
             tmp = frames_dict[tab]
             new_col = ut.transformmyisotopologues(tmp.columns, "generic")
             tmp.columns = new_col
-            frames_dict[tab] = tmp.T
+            frames_dict[tab] = tmp
 
         self.frames_dict = frames_dict
 
     def vib_data_load(self, targetedMetabo_path, args, confdict):
         assert self.type_of_file == "VIBMEC_xlsx", \
             "function called for wrong type of file"
-        frames_dict, internal_standards_df = reshape_vib_data(
+        frames_dict, internal_standards_df = ut.reshape_vib_data(
             targetedMetabo_path, args, confdict)
         try:
             tmp = frames_dict[confdict['isotopologue_proportions']]
@@ -120,20 +119,6 @@ class CompositeData:  # refactor this name
         for x in self.frames_dict.keys():
             tmp = self.frames_dict[x].T
             self.frames_dict[x] = tmp
-
-    def true_key_value_available_frames(self, confdict):
-        reverse_dict = dict()
-        avail_dict = dict()
-        true_reverse_dict = dict()
-        for m in self.expected_keys_confdict:
-            reverse_dict[confdict[m]] = m
-        for h in self.frames_dict.keys():
-            if h is not None:
-                avail_dict[reverse_dict[h]] = h
-                true_reverse_dict[h] = reverse_dict[h]
-
-        self.available_frames = avail_dict
-        self.reverse_available_frames = true_reverse_dict
 
     def load_metabolite_to_isotopologue_df(self, confdict):
         """df of correspondences between isotopologues and metabolites
@@ -157,6 +142,20 @@ class CompositeData:  # refactor this name
         self.frames_dict = tmp
 
         return confdict_new
+
+    def true_key_value_available_frames(self, confdict):
+        reverse_dict = dict()
+        avail_dict = dict()
+        true_reverse_dict = dict()
+        for m in self.expected_keys_confdict:
+            reverse_dict[confdict[m]] = m
+        for h in self.frames_dict.keys():
+            if (self.frames_dict[h] is not None) and (h is not None):
+                avail_dict[reverse_dict[h]] = h
+                true_reverse_dict[h] = reverse_dict[h]
+
+        self.available_frames = avail_dict
+        self.reverse_available_frames = true_reverse_dict
 
     def save_isotopologues_preview(self, args, confdict, groom_out_path):
         compartmentalized_dict = ut.df_to__dic_bycomp(
@@ -269,12 +268,15 @@ class CompositeData:  # refactor this name
         self.frames_dict = tmp
 
     def stomp_fraction_values(self, args, confdict):
-        tmp = self.frames_dict.copy()
-        tmp = isosprop_stomp_values(tmp, confdict, args.isosprop_stomp_values)
-
-        tmp = meanenrich_or_fracfontrib_stomp_values(
-            tmp, confdict, args.meanenrich_or_fracfontrib_stomp_values)
-        self.frames_dict = tmp
+        if args.meanenrich_or_fracfontrib_stomp_values:
+            for frac_type in ["mean_enrichment", "isotopologue_proportions"]:
+                curr_dict = self.frames_dict[confdict[frac_type]]
+                for co in curr_dict.keys():
+                    df = curr_dict[co]
+                    df[df < 0] = 0
+                    df[df > 1] = 1
+                    curr_dict[co] = df
+                self.frames_dict[confdict[frac_type]] = curr_dict
 
     def transfer__abund_nan__to_all_tables(self, confdict):
         tmp = ut.transfer__abund_nan__to_all_tables(
@@ -284,22 +286,7 @@ class CompositeData:  # refactor this name
 # end class
 
 
-def reshape_vib_data(targetedMetabo_path: str, args, confdict):
-    frames_dict = ut.excelsheets2frames_dict(targetedMetabo_path, confdict)
-    lod_values, blanks_df, internal_standards_df, bad_x_y = ut.pull_LOD_blanks_IS(
-        frames_dict[confdict['abundances']])
-
-    frames_dict = ut.reshape_frames_dict_elems(frames_dict, bad_x_y)
-    frames_dict = ut.abund_under_lod_set_nan(
-        confdict, frames_dict, lod_values, args.under_detection_limit_set_nan)
-
-    frames_dict = ut.abund_subtract_blankavg(frames_dict, confdict, blanks_df,
-                                             args.subtract_blankavg)
-
-    return frames_dict, internal_standards_df
-
-
-def check_confdict_completeness(confdict):
+def check_confdict_completeness(confdict) -> None:
     """Callable when input follows 'rule_tsv' type of file (3 files) """
     logger.info("further checking configuration, must include variables "
                 "description")
@@ -312,31 +299,6 @@ def check_confdict_completeness(confdict):
         set(list(confdict['columns_variable_description'].keys()))), \
         logger.critical(f"missing one or more of '{expected_level2}'"
                         f" in columns_variable_description")
-
-
-def isosprop_stomp_values(frames_dict, confdict, isosprop_stomp_vals: bool):
-    if isosprop_stomp_vals:
-        isos_propor_dic = frames_dict[confdict['isotopologue_proportions']]
-        for co in isos_propor_dic.keys():
-            df = isos_propor_dic[co]
-            df[df < 0] = 0
-            df[df > 1] = 1
-            isos_propor_dic[co] = df
-        frames_dict[confdict['isotopologue_proportions']] = isos_propor_dic
-    return frames_dict
-
-
-def meanenrich_or_fracfontrib_stomp_values(
-        frames_dict, confdict, meanenri_or_fraccontrib_stomp_vals: bool):
-    if meanenri_or_fraccontrib_stomp_vals:
-        meorfc_dic = frames_dict[confdict['mean_enrichment']]
-        for co in meorfc_dic.keys():
-            df = meorfc_dic[co]
-            df[df < 0] = 0
-            df[df > 1] = 1
-            meorfc_dic[co] = df
-        frames_dict[confdict['mean_enrichment']] = meorfc_dic
-    return frames_dict
 
 
 def save_tables(frames_dict, groom_out_path) -> None:
@@ -390,8 +352,7 @@ def wrapper_common_steps(combo_data: CompositeData,
 
 
 def perform_type_prep(args, confdict, metadata_used_extension: str,
-                      targetedMetabo_path: str, groom_out_path
-) -> None:
+                      targetedMetabo_path: str, groom_out_path) -> None:
     combo_data = CompositeData(args.type_of_file)
     logger.info("\nLoading data")
     combo_data.load_metadata(
@@ -402,24 +363,18 @@ def perform_type_prep(args, confdict, metadata_used_extension: str,
     combo_data.load_metabolites_to_drop_df(args.remove_these_metabolites)
 
     if args.type_of_file == 'IsoCor_out_tsv':
-        combo_data.isocor_data_load(targetedMetabo_path, args,  confdict)
+        combo_data.isocor_data_load(targetedMetabo_path, confdict)
 
     elif args.type_of_file == 'rule_tsv':
         check_confdict_completeness(confdict)
-        combo_data.rule_tsv_data_load(targetedMetabo_path, args, confdict)
+        combo_data.rule_tsv_data_load(targetedMetabo_path, confdict)
 
     elif args.type_of_file == 'generic_xlsx':
-        combo_data.generic_xlsx_load(targetedMetabo_path, args, confdict)
+        combo_data.generic_xlsx_load(targetedMetabo_path, confdict)
+        combo_data.transpose_frames()
 
     elif args.type_of_file == 'VIBMEC_xlsx':
         combo_data.vib_data_load(targetedMetabo_path, args, confdict)
         combo_data.transpose_frames()
     # endif
     wrapper_common_steps(combo_data, args, confdict, groom_out_path)
-
-
-
-
-
-
-

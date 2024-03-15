@@ -142,9 +142,9 @@ def compute_MEorFC_from_isotopologues_proportions(df, metabos_isos_df):
       metabos_isos_df : df created internally (see 'isotopologues_meaning_df')
     output:
       dataframe (samples as columns) of mean enrichment
-    note:
-       mean enrichment (i) = ( (i_m+0 * 0) + (i_m+1 * 1) +...+ (i_m+n * n)  ) / n
-          where:
+    Note:
+    mean enrichment (i) = ( (i_m+0 * 0) + (i_m+1 * 1) +...+ (i_m+n * n)  ) / n
+          where
            i is one metabolite,
            n the max nb of carbons that can be marked for that metabolite,
            each i_m+x is a value comprised between 0 and 1.
@@ -157,9 +157,9 @@ def compute_MEorFC_from_isotopologues_proportions(df, metabos_isos_df):
     for m in metabos_uniq:
         isos_here = metabos_isos_df.loc[
             metabos_isos_df['metabolite'] == m, 'isotopologue_name']
-        coefs = [int(i.split("_m+")[1]) for i in isos_here.tolist()]  # 0, 1, 2, etc
+        coefs = [int(i.split("_m+")[1]) for i in isos_here.tolist()]
         sub_df = isos_prop.loc[isos_here, :]
-        sub_df['coefs'] = coefs
+        sub_df['coefs'] = coefs  # 0,1,3..,n integers are the coefficients
         # compute the factors, produce another pandas df coefs_fracs_prod
         coefs_fracs_prod = sub_df.multiply(sub_df['coefs'], axis=0)
         # line above makes coefs column be multiplied by itself,
@@ -182,24 +182,24 @@ def complete_missing_frames(confdict, frames_dict, metabolites_isos_df
 
     if confdict['abundances'] is None:
         if confdict['isotopologues'] is not None:
-            frames_dict["abundance_computed"] = dict()
+            frames_dict["abundances_computed"] = dict()
             tmp = compute_abund_from_absolute_isotopol(
                 frames_dict[confdict['isotopologues']], metabolites_isos_df)
-            frames_dict["abundance_computed"] = tmp.astype(float)
-            confdict_new['abundances'] = "abundance_computed"
+            frames_dict["abundances_computed"] = tmp.astype(float)
+            confdict_new['abundances'] = "abundances_computed"
         elif confdict['isotopologues'] is None:
             print(" isotopologues' absolute values not available,\
                  impossible to get abundance")
 
     if confdict['isotopologue_proportions'] is None:
         if confdict['isotopologues'] is not None:
-            frames_dict['isotopologues_props_computed'] = dict()
+            frames_dict['isotopologue_props_computed'] = dict()
             tmp = compute_isotopologues_proportions_from_absolute(
                 frames_dict[confdict['isotopologues']], metabolites_isos_df
             )
-            frames_dict["isotopologues_props_computed"] = tmp.astype(float)
+            frames_dict["isotopologue_props_computed"] = tmp.astype(float)
             confdict_new[
-                'isotopologue_proportions'] = "isotopologues_props_computed"
+                'isotopologue_proportions'] = "isotopologue_props_computed"
         elif confdict['isotopologues'] is None:
             print(" isotopologues' absolute values not available, \
                 impossible to get proportions")
@@ -403,15 +403,15 @@ def save_isos_preview(dict_isos_prop, metadata, output_plots_dir,
             dfmelt = pd.melt(df, id_vars=['metabolite', 'isotopologue_type'])
             dfmelt = impute_custom_levels_to_df(dfmelt)
             table_minimalbymet(dfmelt, os.path.join(output_plots_dir,
-                            f"minextremesIso_{k}.csv"))
-            outputfigure = os.path.join(output_plots_dir ,f"allsampleIsos_{k}.pdf")
+                               f"minextremesIso_{k}.csv"))
+            outputfigure = os.path.join(output_plots_dir, f"allsampleIsos_{k}.pdf")
             figtitle = f"{k} compartment, Isotopologues (proportions) \
             across all samples"
             save_rawisos_plot(dfmelt, figuretitle=figtitle,
-                                 outputfigure=outputfigure)
+                              outputfigure=outputfigure)
 
 
-def impute_custom_levels_to_df(melted):
+def impute_custom_levels_to_df(melted: pd.DataFrame):
     another = melted.copy()
     another = another.groupby('metabolite').min()
     another = another.sort_values(by='value', ascending=False)
@@ -517,9 +517,9 @@ def drop__metabolites_by_compart(frames_dict: Dict[str, pd.DataFrame],
 def transfer__abund_nan__to_all_tables(confdict, frames_dict, metadata):
     """propagates nan from abundance
     # to isotopologues and fractional contributions"""
-    isos_tables = [ x for x in [confdict['isotopologues'],
-                                confdict['isotopologue_proportions']
-                                ] if x is not None ]
+    isos_tables = [x for x in [confdict['isotopologues'],
+                               confdict['isotopologue_proportions']
+                               ] if x is not None]
     for co in metadata['compartment'].unique().tolist():
         abu_co = frames_dict[confdict['abundances']][co]
         frac_co = frames_dict[confdict['mean_enrichment']][co]
@@ -583,6 +583,22 @@ def excelsheets2frames_dict(excel_file: str, confdict: dict) -> dict:
 
 
 # ############ VIB dedicated:
+
+
+def reshape_vib_data(targetedMetabo_path: str, args, confdict):
+    frames_dict = excelsheets2frames_dict(targetedMetabo_path, confdict)
+    lod_values, blanks_df, internal_standards_df, bad_x_y = pull_LOD_blanks_IS(
+        frames_dict[confdict['abundances']])
+
+    frames_dict = reshape_frames_dict_elems(frames_dict, bad_x_y)
+    frames_dict = abund_under_lod_set_nan(
+        confdict, frames_dict, lod_values, args.under_detection_limit_set_nan)
+
+    frames_dict = abund_subtract_blankavg(frames_dict, confdict, blanks_df,
+                                          args.subtract_blankavg)
+
+    return frames_dict, internal_standards_df
+
 
 def abund_subtract_blankavg(frames_dict: dict, confdict: dict,
                             blanks_df: pd.Series, subtract_blankavg: bool):
@@ -651,7 +667,7 @@ def pull_LOD_blanks_IS(abund_df) -> tuple[pd.Series, pd.DataFrame,
 
 
 def reshape_frames_dict_elems(frames_dict: dict,
-                             todrop_x_y: dict):
+                              todrop_x_y: dict):
     """
     Give proper format to VIB data:
     exclude from each dataframe the rows and columns
@@ -715,9 +731,3 @@ def transformmyisotopologues(isos_list, style) -> List[str]:
         outli = isos_list
         raise ValueError("isotopologues style not vib nor generic")
     return outli
-
-
-
-# useful resources:
-# count nb of occurrences:
-# https://www.w3resource.com/python-exercises/lambda/python-lambda-exercise-49.php
