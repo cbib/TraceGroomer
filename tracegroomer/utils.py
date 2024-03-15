@@ -10,13 +10,11 @@ import os
 import yaml
 import numpy as np
 import pandas as pd
-from scipy import stats
 import matplotlib.pyplot as plt
 import seaborn as sns
 import logging
-import time
 import re
-from typing import Union
+from typing import Union, List, Dict, Tuple
 
 
 def reset_log_config(logger):
@@ -29,9 +27,9 @@ def reset_log_config(logger):
     return logger
 
 
-def open_config_file(confifile):
+def open_config_file(config_file_path: str) -> Dict[str, Union[str, dict]]:
     try:
-        with open(confifile, "r") as f:
+        with open(config_file_path, "r") as f:
             confdict = yaml.load(f, Loader=yaml.Loader)
     except yaml.YAMLError as yam_err:
         print(yam_err)
@@ -58,17 +56,17 @@ def open_metadata(file_path: str) -> pd.DataFrame:
         raise ValueError("\nproblem opening metadata file")
 
 
-def open_amount_material(amount_material_path: str):
+def open_amount_material(amount_material_path: str) -> pd.DataFrame:
     if amount_material_path is not None:
         try:
             file = amount_material_path
             material_df = pd.read_csv(file, sep='\t', index_col=0)
 
-            assert material_df.shape[1] == 1,\
+            assert material_df.shape[1] == 1, \
                 "amountMaterial table must have only 2 columns"
 
-            assert (material_df.iloc[:, 0] <= 0).sum() == 0, "amountMaterial table\
-                 must not contain zeros nor negative numbers"
+            assert (material_df.iloc[:, 0] <= 0).sum() == 0, "amountMaterial \
+                 table must not contain zeros nor negative numbers"
 
         except FileNotFoundError as err_file:
             print(err_file)
@@ -80,7 +78,21 @@ def open_amount_material(amount_material_path: str):
     return material_df
 
 
-def compute_abund_from_absolute_isotopol(df, metabos_isos_df):
+def open_metabolites_to_drop(exclude_list_file: str) -> pd.DataFrame:
+    try:
+        exclude_df = pd.read_csv(exclude_list_file, sep="\t", header=0)
+        expected_columns = ["compartment", "metabolite"]
+        if not set(list(exclude_df.columns)).issubset(set(expected_columns)):
+            print(f"columns: {expected_columns} missing in the file\n")
+    except FileNotFoundError as err_file:
+        print(err_file)
+    except Exception as e:
+        print(e)
+
+    return exclude_df
+
+
+def compute_abund_from_absolute_isotopol(df, metabos_isos_df) -> pd.DataFrame:
     """
     input:
        df : input isotopologues in absolute values
@@ -160,11 +172,11 @@ def compute_MEorFC_from_isotopologues_proportions(df, metabos_isos_df):
         me_fc_this_metabolite.name = m
         meanenrich_or_fraccontrib.loc[m, :] = me_fc_this_metabolite
     meanenrich_or_fraccontrib = meanenrich_or_fraccontrib.round(decimals=9)
-    return meanenrich_or_fraccontrib  # meanenrich_or_fraccontrib.T
+    return meanenrich_or_fraccontrib
 
 
-def complete_missing_frames(confdict, frames_dict, metadata,
-                            metabolites_isos_df) -> dict:
+def complete_missing_frames(confdict, frames_dict, metabolites_isos_df
+                            ) -> Tuple[Dict[str, pd.DataFrame], dict]:
     """can apply to any type of inputs, compartmentalized"""
     confdict_new = confdict.copy()
 
@@ -219,8 +231,7 @@ def df_to__dic_bycomp(df: pd.DataFrame, metadata: pd.DataFrame) -> dict:
     return out_dic
 
 
-def isocor_2_frames_dict(isocor_input_df,  confdict,
-                        internal_standard: Union[str,None]):
+def isocor_2_frames_dict(isocor_input_df,  confdict) -> Dict[str, pd.DataFrame]:
     """ function exclusive for IsoCor type of file
         all the 4 types of quantification are transformed in independent
         data frames, and kept into a dictionary"""
@@ -259,7 +270,6 @@ def isocor_2_frames_dict(isocor_input_df,  confdict,
 
     abundance = compute_abund_from_absolute_isotopol(isos_absolute,
                                                      metabos_isos_df)
-
     frames_dict = dict()
     frames_dict[confdict['mean_enrichment']] = me_or_fc
     frames_dict[confdict['isotopologue_proportions']] = isos_prop
@@ -269,7 +279,8 @@ def isocor_2_frames_dict(isocor_input_df,  confdict,
     return frames_dict
 
 
-def check_config_and_sheets_match(sheetsnames, list_config_tabs):
+def check_config_and_sheets_match(sheetsnames: List[str],
+                                  list_config_tabs: List[str]) -> None:
     name_notfound = set(list_config_tabs) - set(sheetsnames)
     message = f"One or more name_ arguments in config file not matching \
     \nthe excel sheets names:  {name_notfound}. Check spelling!"
@@ -278,7 +289,7 @@ def check_config_and_sheets_match(sheetsnames, list_config_tabs):
     assert len(list(name_notfound)) == 0, message
 
 
-def fullynumeric(mystring) -> bool:
+def fullynumeric(mystring: str) -> bool:
     """
     tests if a string can be converted into float or not.
     e.g. "44" = True, "7A" = False
@@ -310,7 +321,7 @@ def verify_metadata_sample_not_duplicated(metadata_df) -> None:
             f"Error, found these conflicts in your metadata:\n{txt_errors}")
 
 
-def isotopologues_meaning_df(isotopologues_full_list):
+def isotopologues_meaning_df(isotopologues_full_list: List[str]):
     """
     input: list of isotopologues ['cit_m+0', 'cit_m+1', ...]
        note: extracted from the colnames of the input isotopologues
@@ -373,9 +384,9 @@ def save_isos_preview(dict_isos_prop, metadata, output_plots_dir,
     if the_boolean_arg:
         for k in metadata['compartment'].unique().tolist():
             df = dict_isos_prop[k]
-            sples_co = metadata.loc[
+            samples_co = metadata.loc[
                 metadata["compartment"] == k, "original_name"]
-            df = df[sples_co]
+            df = df[samples_co]
             df = df.astype(float)
             df = add_metabolite_column(df)
             df = add_isotopologue_type_column(df)
@@ -479,26 +490,26 @@ def divide_by_amount_material(frames_dict: dict, confdict: dict,
     return frames_dict
 
 
-def drop__metabolites_by_compart(frames_dict_orig: dict,
-                                 bad_metabolites_dic: dict) -> dict:
-    frames_dict = frames_dict_orig.copy()
+def drop__metabolites_by_compart(frames_dict: Dict[str, pd.DataFrame],
+                                 reverse_available_frames: dict,
+                                 bad_metabolites_dict: dict) -> dict:
     for tab_name in frames_dict.keys():
-        for co in bad_metabolites_dic.keys():
-            if "isotopolog" in tab_name.lower(): # TODO:  this is fragile  !
+        for co in bad_metabolites_dict.keys():
+            if reverse_available_frames[tab_name] in \
+                    ["isotopologues", "isotopologue_proportions"]:
                 tmpdf = frames_dict[tab_name][co]
-                to_drop_now_isos = list()
+                to_drop__isotopologues_names = list()
                 for i in list(tmpdf.index):
-                    for j in bad_metabolites_dic[co]:
+                    for j in bad_metabolites_dict[co]:
                         if i.startswith(j):
-                            to_drop_now_isos.append(i)
-                tmpdf = tmpdf.drop(index=to_drop_now_isos)
-                frames_dict[tab_name][co] = tmpdf
-
-            elif "isotopolog" not in tab_name.lower(): # TODO: this is fragile !
+                            to_drop__isotopologues_names.append(i)
+                tmpdf = tmpdf.drop(index=to_drop__isotopologues_names)
+            else:
                 tmpdf = frames_dict[tab_name][co]
-                to_drop_now = bad_metabolites_dic[co]
+                to_drop_now = bad_metabolites_dict[co]
                 tmpdf = tmpdf.drop(index=to_drop_now)
-                frames_dict[tab_name][co] = tmpdf
+
+            frames_dict[tab_name][co] = tmpdf
 
     return frames_dict
 
@@ -531,11 +542,13 @@ def transfer__abund_nan__to_all_tables(confdict, frames_dict, metadata):
     return frames_dict
 
 
-def compute_sums_isotopol_props(dfT):
-    sums_df = pd.DataFrame(index=dfT['metabolite'].unique(),
-                           columns=dfT.columns)
-    for metabolite in dfT['metabolite'].unique():
-        df_sub = dfT.loc[dfT['metabolite'] == metabolite, :]
+def compute_sums_isotopol_props(metabolite_isotopologue_names_df):
+    sums_df = pd.DataFrame(
+        index=metabolite_isotopologue_names_df['metabolite'].unique(),
+        columns=metabolite_isotopologue_names_df.columns)
+    for metabolite in metabolite_isotopologue_names_df['metabolite'].unique():
+        df_sub = metabolite_isotopologue_names_df.loc[
+                 metabolite_isotopologue_names_df['metabolite'] == metabolite, :]
         summa = df_sub.sum(axis=0, skipna=False)
         sums_df.loc[metabolite, :] = summa
     return sums_df
@@ -653,8 +666,7 @@ def reshape_frames_dict_elems(frames_dict: dict,
     return frames_dict
 
 
-def abund_under_lod_set_nan(confdict, frames_dict,
-                            lod_values: pd.Series,
+def abund_under_lod_set_nan(confdict, frames_dict, lod_values: pd.Series,
                             under_detection_limit_set_nan: bool) -> dict:
     """
     on VIB total abundances, set NaN any value that is below the
@@ -675,7 +687,7 @@ def abund_under_lod_set_nan(confdict, frames_dict,
     return frames_dict
 
 
-def transformmyisotopologues(isos_list, style):
+def transformmyisotopologues(isos_list, style) -> List[str]:
     """only applies to variables in the VIB and generic formats"""
     if "vib" in style.lower():
         outli = list()

@@ -17,12 +17,12 @@ logger = logging.getLogger(__name__)
 logger = ut.reset_log_config(logger)
 
 
-class ComposedData:  # refactor this name
+class CompositeData:  # refactor this name
     def __init__(self, type_of_file):
         self.metadata: pd.DataFrame = None
         self.type_of_file: str = type_of_file
         self.material_df: pd.DataFrame = None
-        self.instandard_abun_df: pd.DataFrame = None
+        self.internal_standard_abun_df: pd.DataFrame = None
         self.metabolites_to_drop_df: pd.DataFrame = None
         self.expected_keys_confdict = ['mean_enrichment',
                                        'isotopologue_proportions',
@@ -37,14 +37,20 @@ class ComposedData:  # refactor this name
 
     def load_amount_material_df(self, amount_material_path):
         if amount_material_path is not None:
+            logger.info(f"loading amount of material: {amount_material_path}")
             self.material_df = ut.open_amount_material(amount_material_path)
+
+    def load_metabolites_to_drop_df(self, exclude_list_file: Union[str, None]):
+        if exclude_list_file is not None:
+            logger.info(f"loading metabolites to drop: {exclude_list_file}")
+            self.metabolites_to_drop_df = ut.open_metabolites_to_drop(
+                exclude_list_file)
 
     def isocor_data_load(self, targetedMetabo_path, args, confdict):
         assert self.type_of_file == "IsoCor_out_tsv", \
             "function 'isocor_data_load' called for wrong type of file"
         isocor__df = pd.read_csv(targetedMetabo_path, sep="\t")
-        frames_dict = ut.isocor_2_frames_dict(
-            isocor__df, confdict, args.use_internal_standard)
+        frames_dict = ut.isocor_2_frames_dict(isocor__df, confdict)
 
         self.frames_dict = frames_dict
 
@@ -107,7 +113,7 @@ class ComposedData:  # refactor this name
             logger.error("isotopologue_proportions missing "
                          "or misspelled in config")
 
-        self.instandard_abun_df = internal_standards_df
+        self.internal_standard_abun_df = internal_standards_df
         self.frames_dict = frames_dict
 
     def transpose_frames(self):
@@ -118,13 +124,16 @@ class ComposedData:  # refactor this name
     def true_key_value_available_frames(self, confdict):
         reverse_dict = dict()
         avail_dict = dict()
+        true_reverse_dict = dict()
         for m in self.expected_keys_confdict:
             reverse_dict[confdict[m]] = m
         for h in self.frames_dict.keys():
             if h is not None:
                 avail_dict[reverse_dict[h]] = h
+                true_reverse_dict[h] = reverse_dict[h]
 
         self.available_frames = avail_dict
+        self.reverse_available_frames = true_reverse_dict
 
     def load_metabolite_to_isotopologue_df(self, confdict):
         """df of correspondences between isotopologues and metabolites
@@ -139,13 +148,12 @@ class ComposedData:  # refactor this name
             isotopologues_full = list(self.frames_dict[confdict[
                                     "isotopologues"]].index)
 
-        self.metabolites_isos_df = ut.isotopologues_meaning_df(
+        self.metabolites2isotopologues_df = ut.isotopologues_meaning_df(
             isotopologues_full)
 
     def fill_missing_data(self, confdict) -> Dict[str, str]:
         tmp, confdict_new = ut.complete_missing_frames(
-            confdict, self.frames_dict,
-            self.metadata, self.metabolites_isos_df)
+            confdict, self.frames_dict, self.metabolites2isotopologues_df)
         self.frames_dict = tmp
 
         return confdict_new
@@ -163,7 +171,7 @@ class ComposedData:  # refactor this name
             output_plots_dir, args.isotopologues_preview)
 
     def pull_internal_standard(self, confdict, args):
-        if (self.instandard_abun_df is None) and (
+        if (self.internal_standard_abun_df is None) and (
              args.use_internal_standard is not None
         ):
             try:
@@ -175,7 +183,7 @@ class ComposedData:  # refactor this name
                      args.use_internal_standard: y
                      })
                 instandard_abun_df.index = instandard_abun_df["sample"]
-                self.instandard_abun_df = instandard_abun_df
+                self.internal_standard_abun_df = instandard_abun_df
             except Exception as e:
                 logger.info(e)
                 logger.warning("internal standard not found, continuing.")
@@ -193,8 +201,7 @@ class ComposedData:  # refactor this name
             confdict[k] = None
         # recompute:
         new_frames_dict, new_confdict = ut.complete_missing_frames(
-            confdict, self.frames_dict,
-            self.metadata, self.metabolites_isos_df
+            confdict, self.frames_dict, self.metabolites2isotopologues_df
         )
         self.frames_dict = new_frames_dict
         self.all_metrics_normalized_by_material = True
@@ -215,34 +222,34 @@ class ComposedData:  # refactor this name
         if args.use_internal_standard is not None:
             logger.info("computing normalization by internal standard")
             frames_dict = ut.abund_divideby_internalStandard(
-                self.frames_dict, confdict, self.instandard_abun_df,
+                self.frames_dict, confdict, self.internal_standard_abun_df,
                 args.use_internal_standard)
             self.frames_dict = frames_dict
 
-    def compartmentalize_frames_dict(self, confdict):
+    def compartmentalize_frames_dict(self):
         for k in self.frames_dict.keys():
             tmp = ut.df_to__dic_bycomp(
                 self.frames_dict[k], self.metadata
             )
             self.frames_dict[k] = tmp
 
-    def drop_metabolites_infile(self, exclude_list_file: Union[str, None]):
-        if exclude_list_file is not None:
+    def drop_metabolites(self):
+        if self.metabolites_to_drop_df is not None:
             tmp = self.frames_dict.copy()
-            logger.info("removing metabolites as specified by user in file:")
-            logger.info(f"{exclude_list_file}")
-            exclude_df = pd.read_csv(exclude_list_file, sep="\t", header=0)
+            logger.info("removing user specified metabolites, by compartment")
             try:
                 unwanted_metabolites = dict()
-                for co in exclude_df["compartment"].unique():
-                    mets_l = exclude_df.loc[
-                        exclude_df["compartment"] == co, 'metabolite'].tolist()
+                for co in self.metabolites_to_drop_df["compartment"].unique():
+                    mets_l = self.metabolites_to_drop_df.loc[
+                        self.metabolites_to_drop_df["compartment"] == co,
+                        'metabolite'].tolist()
                     unwanted_metabolites[co] = mets_l
-                tmp = ut.drop__metabolites_by_compart(tmp, unwanted_metabolites) #TODO!!
-            except FileNotFoundError as err_file:
-                logger.info(err_file)
+                tmp = ut.drop__metabolites_by_compart(
+                    tmp, self.reverse_available_frames, unwanted_metabolites)
             except Exception as e:
-                logger.info(e)
+                logger.warning(e)
+                logger.warning("Metabolites removal not possible. Continue")
+
             self.frames_dict = tmp
 
     def frames_filterby_min_admited_isotopol_proportions(
@@ -257,16 +264,16 @@ class ComposedData:  # refactor this name
             set_mets = set([i.split("_m+")[0] for i in isos_bad.index])
             bad_mets[co] = list(set_mets)
 
-        tmp = ut.drop__metabolites_by_compart(self.frames_dict, bad_mets)  # TODO !!
+        tmp = ut.drop__metabolites_by_compart(
+            self.frames_dict, self.reverse_available_frames, bad_mets)
         self.frames_dict = tmp
 
-    def stomp_fraction_values(self, args,confdict):
+    def stomp_fraction_values(self, args, confdict):
         tmp = self.frames_dict.copy()
-        tmp = isosprop_stomp_values(tmp, confdict,
-                                            args.isosprop_stomp_values)
+        tmp = isosprop_stomp_values(tmp, confdict, args.isosprop_stomp_values)
+
         tmp = meanenrich_or_fracfontrib_stomp_values(
-            tmp, confdict,
-            args.meanenrich_or_fracfontrib_stomp_values)
+            tmp, confdict, args.meanenrich_or_fracfontrib_stomp_values)
         self.frames_dict = tmp
 
     def transfer__abund_nan__to_all_tables(self, confdict):
@@ -352,11 +359,10 @@ def save_tables(frames_dict, groom_out_path) -> None:
                         sep='\t', header=True, index=False)
 
         logger.info(f"File saved to: {os.path.join(groom_out_path, k)}.csv")
-        print("File saved to:",  os.path.join(groom_out_path, f"{k}.csv"))
         # note : do not clear zero rows, as gives problem pd.merge
 
 
-def wrapper_common_steps(combo_data: ComposedData,
+def wrapper_common_steps(combo_data: CompositeData,
                          args, confdict, groom_out_path: str) -> None:
     combo_data.load_metabolite_to_isotopologue_df(confdict)
     confdict = combo_data.fill_missing_data(confdict)
@@ -375,24 +381,25 @@ def wrapper_common_steps(combo_data: ComposedData,
         else:
             combo_data.normalize_total_abundance_by_material(args, confdict)
     combo_data.normalize_by_internal_standard(args, confdict)
-    combo_data.compartmentalize_frames_dict(confdict)
+    combo_data.compartmentalize_frames_dict()
     # last steps use compartmentalized frames
-    combo_data.drop_metabolites_infile(args.remove_these_metabolites)
+    combo_data.drop_metabolites()
     combo_data.stomp_fraction_values(args, confdict)
     combo_data.transfer__abund_nan__to_all_tables(confdict)
-    save_tables(combo_data.frames_dict, groom_out_path)  # TODO: too many decimals, set to 6 places for all dfs
+    save_tables(combo_data.frames_dict, groom_out_path)
 
 
 def perform_type_prep(args, confdict, metadata_used_extension: str,
                       targetedMetabo_path: str, groom_out_path
 ) -> None:
-    combo_data = ComposedData(args.type_of_file)
+    combo_data = CompositeData(args.type_of_file)
     logger.info("\nLoading data")
     combo_data.load_metadata(
         os.path.join(groom_out_path,
                      f"{confdict['metadata']}{metadata_used_extension}"))
 
     combo_data.load_amount_material_df(args.amountMaterial_path)
+    combo_data.load_metabolites_to_drop_df(args.remove_these_metabolites)
 
     if args.type_of_file == 'IsoCor_out_tsv':
         combo_data.isocor_data_load(targetedMetabo_path, args,  confdict)
