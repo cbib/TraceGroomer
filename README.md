@@ -3,26 +3,31 @@
 [![PyPI - Python Version](https://img.shields.io/pypi/v/tracegroomer)](https://pypi.org/project/tracegroomer/)
 [![bioconda package](https://img.shields.io/conda/v/bioconda/tracegroomer)](https://anaconda.org/bioconda/tracegroomer)
 
-TraceGroomer is a solution for formatting and normalising **Trace**r metabolomics given file(s), 
+TraceGroomer is a solution for formatting and normalising _isotope-labeled_ (a.k.a _Tracer_) _Metabolomics_ given file(s), 
 to produce the .csv files which are ready for [DIMet](https://github.com/cbib/DIMet) tool.
 
-Currently, three **styles of format** of Tracer (or Isotope-labeled) metabolomics measurements files are accepted:
+Not only one, but several input formats are accepted by TraceGroomer!:
+these input formats are described in detail
+(visit the _Wiki_ link provided in our [documentation](#documentation) section), 
+e.g. IsoCor output files are currently supported.  
 
-1. IsoCor results (.tsv measurments file).
-2. Results provided by the VIB Metabolomics Expertise Center (El-Maven results are shaped by VIB MEC team into a multi-sheet .xlsx file).  
-3. A 'generic' .xlsx measurements file, manually set by the user.
+TraceGroomer processes your data in seconds!
 
-For any type of these supported inputs, TraceGroomer generates an independent file for:
+For any type of the supported inputs, TraceGroomer generates an independent file for each type of quantification:
 i) total metabolite abundances ii) Isotopologues iii) Isotopologues' proportions and iv) mean enrichment (a.k.a fractional contributions).
 
-Automatic formatting is performed, as well as the normalization chosen by the user:
+Advantages of using TraceGroomer for preparing your data for DIMet:
+
+- if only Isotopologues' absolute values are provided, TraceGroomer generates all the other 
+quantifications automatically.
+- fast, automatic formatting is performed, as well as the normalization chosen by the user:
 whether by the amount of material and/or by an internal standard.
-Useful advanced options are offered (e.g. if the user has only Isotopologues' absolute values, TraceGroomer can generate all the other 
-measurements files automatically).
+- useful advanced options are offered (e.g. different modalities of normalization 
+by the amount of material).
 
 
-_Note_ : this script does not correct for naturally occurring isotopologues. 
-Your data must be already processed by another software that performs such correction.
+_Note_ : TraceGroomer does not correct for naturally occurring isotopologues.
+Your data must be already processed by another software that performs such correction (e.g. [IsoCor](https://pypi.org/project/IsoCor/)).
 
 --------------------------
 
