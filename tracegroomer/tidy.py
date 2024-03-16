@@ -164,11 +164,13 @@ class CompositeData:  # refactor this name
             self.metadata)
         output_plots_dir = os.path.join(groom_out_path, "preview_plots")
         if args.isotopologues_preview:
+            logger.info(f"prepare isotopologue proportions overview figures")
             if not os.path.exists(output_plots_dir):
                 os.makedirs(output_plots_dir)
-        ut.save_isos_preview(
-            compartmentalized_dict, self.metadata,
-            output_plots_dir, args.isotopologues_preview)
+            ut.save_isos_preview(
+                compartmentalized_dict, self.metadata,
+                output_plots_dir, args.isotopologues_preview)
+            logger.info(f"saved figures to {output_plots_dir}")
 
     def pull_internal_standard(self, confdict, args):
         if (self.internal_standard_abun_df is None) and (
@@ -186,7 +188,7 @@ class CompositeData:  # refactor this name
                 self.internal_standard_abun_df = instandard_abun_df
             except Exception as e:
                 logger.info(e)
-                logger.warning("internal standard not found, continuing.")
+                logger.warning("internal standard not found. Continue.")
 
     def normalize_isotopologues_by_material(self, args, confdict):
         """when running normalization on the isotopologues absolute values,

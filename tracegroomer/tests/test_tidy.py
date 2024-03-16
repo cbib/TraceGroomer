@@ -126,8 +126,9 @@ class TestCompositeData(TestCase):
         )
 
     def test_pull_internal_standard(self):
-        df = pd.DataFrame({"X": [87, 85], "W_acid": [64, 37],
-                           "Z": [14, 17]}).T
+        df = pd.DataFrame({ "sample-a": [87, 64, 14],
+                            "sample-b": [85, 37, 17]})
+        df.index = ["X", "W_acid", "Z"]
         config = {
             "mean_enrichment": "FracContribs", "isotopologues": None,
             "isotopologue_proportions": "Prps", "abundances": "ToAbundances"}

@@ -14,16 +14,17 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import logging
 import re
-from typing import Union, List, Dict, Tuple
+from typing import Dict, List, Tuple, Union
+
 
 
 def reset_log_config(logger):
     """parameters for the log file"""
     out_log_file_name = "groom.log"
-    logging.basicConfig(encoding='utf-8',
-                        stream=sys.stdout,  level=logging.DEBUG)
+    logging.basicConfig(encoding='utf-8', stream=sys.stdout)
     file_handler = logging.FileHandler(out_log_file_name)
     logger.addHandler(file_handler)
+    logger.setLevel(logging.DEBUG)
     return logger
 
 
@@ -49,8 +50,7 @@ def open_metadata(file_path: str) -> pd.DataFrame:
         metadata = pd.read_csv(file_path, sep='\t')
         return metadata
     except Exception as e:
-        print(e)
-        print('problem with opening metadata file')
+        print(f'{e}\nproblem with opening metadata file')
         metadata = None
     if metadata is None:
         raise ValueError("\nproblem opening metadata file")
@@ -63,17 +63,17 @@ def open_amount_material(amount_material_path: str) -> pd.DataFrame:
             material_df = pd.read_csv(file, sep='\t', index_col=0)
 
             assert material_df.shape[1] == 1, \
-                "amountMaterial table must have only 2 columns"
+                "amountMaterial_path: table must have only 2 columns"
 
-            assert (material_df.iloc[:, 0] <= 0).sum() == 0, "amountMaterial \
-                 table must not contain zeros nor negative numbers"
+            assert (material_df.iloc[:, 0] <= 0).sum() == 0, "amountMaterial\
+                 _path: table must not contain zeros nor negative numbers"
 
         except FileNotFoundError as err_file:
             print(err_file)
         except UnboundLocalError as uerr:
-            print(uerr, "config amountMaterial_path:  check spelling")
+            print(uerr, "amountMaterial_path:  check spelling")
         except Exception as e:
-            print(e)
+            print(e, "unexpected error, could not open amountMaterial_path")
 
     return material_df
 
@@ -214,9 +214,8 @@ def complete_missing_frames(confdict, frames_dict, metabolites_isos_df
             frames_dict["mean_enrichment_computed"] = tmp.astype(float)
             confdict_new['mean_enrichment'] = "mean_enrichment_computed"
         except Exception as e:
-            print("impossible to calculate: mean enrichment or fractional \
-                  contribution. Isotopologue proportions not found")
-            print(e)
+            print(f"{e}\n impossible to calculate: mean enrichment or fract"
+                  f" contribution. Isotopologue proportions not found")
 
     return frames_dict, confdict_new
 
@@ -300,7 +299,7 @@ def fullynumeric(mystring: str) -> bool:
     except ValueError:
         return False
     except Exception as e:
-        print(e)
+        print(f'{e}\n[utils > fullynumeric] {mystring} is not only numeric!')
         return False
 
 
@@ -347,23 +346,6 @@ def isotopologues_meaning_df(isotopologues_full_list: List[str]):
 # from here, functions for isotopologue preview
 
 
-def add_metabolite_column(df):
-    theindex = df.index
-    themetabolites = [i.split("_m+")[0] for i in theindex]
-    df = df.assign(metabolite=themetabolites)
-
-    return df
-
-
-def add_isotopologue_type_column(df):
-    theindex = df.index
-    preisotopologue_type = [i.split("_m+")[1] for i in theindex]
-    theisotopologue_type = [int(i) for i in preisotopologue_type]
-    df = df.assign(isotopologue_type=theisotopologue_type)
-
-    return df
-
-
 def save_heatmap_sums_isos(thesums, figuretitle, outputfigure) -> None:
     fig, ax = plt.subplots(figsize=(9, 10))
     sns.heatmap(thesums,
@@ -380,7 +362,7 @@ def save_heatmap_sums_isos(thesums, figuretitle, outputfigure) -> None:
 
 
 def save_isos_preview(dict_isos_prop, metadata, output_plots_dir,
-                      the_boolean_arg):
+                      the_boolean_arg) -> None:
     if the_boolean_arg:
         for k in metadata['compartment'].unique().tolist():
             df = dict_isos_prop[k]
@@ -388,8 +370,10 @@ def save_isos_preview(dict_isos_prop, metadata, output_plots_dir,
                 metadata["compartment"] == k, "original_name"]
             df = df[samples_co]
             df = df.astype(float)
-            df = add_metabolite_column(df)
-            df = add_isotopologue_type_column(df)
+            df = df.assign(metabolite=df.index.str.split("_m+").str[0])
+            df = df.assign(isotopologue_type=df.index.str.split("_m+").str[1])
+            df["isotopologue_type"] = df['isotopologue_type'].astype(int)
+
             thesums = compute_sums_isotopol_props(df)
 
             thesums = thesums.drop(
@@ -412,21 +396,25 @@ def save_isos_preview(dict_isos_prop, metadata, output_plots_dir,
 
 
 def impute_custom_levels_to_df(melted: pd.DataFrame):
+    """if plotting true, re-level metabolites based on smallest values seen"""
     another = melted.copy()
     another = another.groupby('metabolite').min()
     another = another.sort_values(by='value', ascending=False)
     levelsmetabolites = another.index
     tmp = melted['metabolite']
     melted['metabolite'] = pd.Categorical(tmp, categories=levelsmetabolites)
-
     return melted
 
 
 def table_minimalbymet(melted, fileout) -> None:
-    another = melted.copy()
-    another = another.groupby('metabolite', observed=False).min()
-    another = another.sort_values(by='value', ascending=False)
-    another.to_csv(fileout, sep='\t', header=True)
+    try:
+        another = melted.copy()
+        another = another.groupby('metabolite', observed=False).min()
+        another = another.sort_values(by='value', ascending=False)
+        another.to_csv(fileout, sep='\t', header=True)
+    except Exception as e:
+        print(f'[table_minimalbymet > isotopologues preview] {e}. Continue.')
+        pass
 
 
 def save_rawisos_plot(dfmelt, figuretitle, outputfigure) -> None:
@@ -456,8 +444,10 @@ def abund_divideby_internalStandard(frames_dict, confdict,
     # compulsory to subset strict one column as some formats can give > 1
     try:
         internal_standard_df = internal_standard_df[use_internal_standard]
-        internal_standard_df[internal_standard_df == 0] = \
-            internal_standard_df[internal_standard_df > 0].min()
+        min_not_zero = internal_standard_df[internal_standard_df > 0].min()
+        internal_standard_df.replace(0, min_not_zero, inplace=True)
+        # internal_standard_df[internal_standard_df == 0] = \
+        #     internal_standard_df[internal_standard_df > 0].min()
 
         abund_df = frames_dict[confdict['abundances']].copy()
         tmp = abund_df.div(internal_standard_df, axis=1)
@@ -643,7 +633,6 @@ def pull_LOD_blanks_IS(abund_df) -> tuple[pd.Series, pd.DataFrame,
                     i.lower().startswith("mock"))]
     # synonyms: blank, mock
     blanks_df = abund_df.loc[blanks_rows, :]
-    # lod_values = abund_df.loc['LOD', :]
 
     # refine dfs
     elems_x_todrop = [internal_st_precol[1]]
@@ -724,8 +713,7 @@ def transformmyisotopologues(isos_list, style) -> List[str]:
         try:
             outli = [i.replace("label", "m+") for i in isos_list]
         except Exception as e:
-            print(e)
-            print("not possible to change the isotopologues name style")
+            print(f"{e}\nnot possible to change the isotopologues name style")
             outli = isos_list
     else:
         outli = isos_list
