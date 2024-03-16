@@ -126,6 +126,7 @@ class CompositeData:  # refactor this name
         try:
             isotopologues_full = list(self.frames_dict[confdict[
                                      "isotopologue_proportions"]].index)
+        # ok apply same proposed solution whether Key or Type error:
         except TypeError:
             isotopologues_full = list(self.frames_dict[confdict[
                                       "isotopologues"]].index)

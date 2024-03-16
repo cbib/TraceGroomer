@@ -95,8 +95,8 @@ def open_metabolites_to_drop(exclude_list_file: str) -> pd.DataFrame:
 def compute_abund_from_absolute_isotopol(df, metabos_isos_df) -> pd.DataFrame:
     """
     input:
-       df : input isotopologues in absolute values
-       metabos_isos_df : df created internally (see 'isotopologues_meaning_df')
+       df: input isotopologues in absolute values
+       metabos_isos_df: df created internally (see 'isotopologues_meaning_df')
     output:
        dataframe (samples as columns) of total abundances
     """

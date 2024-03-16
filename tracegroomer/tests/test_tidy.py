@@ -3,7 +3,6 @@ from unittest import TestCase
 import pandas as pd
 import numpy as np
 
-from tracegroomer import tidy
 from tracegroomer.tidy import CompositeData
 
 
@@ -12,8 +11,8 @@ class MimicArg:
         self.meanenrich_or_fracfontrib_stomp_values = True
         self.use_internal_standard = "W_acid"
 
-class TestCompositeData(TestCase):
 
+class TestCompositeData(TestCase):
 
     def test_transpose_frames(self):
         df = pd.DataFrame({
@@ -141,22 +140,3 @@ class TestCompositeData(TestCase):
         self.assertTrue(np.all(np.array(result.shape) == np.array([2, 2])))
         self.assertTrue(np.all(np.array(
             result["W_acid"]) == np.array([64, 37])))
-
-
-
-
-
-# df = pd.DataFrame({
-#     "id009": [5769.87, 6224.543, 7787.676, 86457.5],
-#     "id010": [2879.3, 3676.4, 4023, 4684.4],
-#     "id011": [1956, 1845.4, 1005.2, 1309],
-#     "id019": [2879.3, 3676.4, 4023, 4684.4],
-#     "id020": [79.3, 76.4, 23.56, 44.34],
-# })
-# df.index = ["sampleA1", "sampleA2", "sampleB1", "sampleB2"]
-#
-# for i,r in df.iterrows():
-#     print(r.tolist())
-
-
-
