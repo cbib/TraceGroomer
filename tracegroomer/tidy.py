@@ -271,7 +271,7 @@ class CompositeData:  # refactor this name
         self.frames_dict = tmp
 
     def stomp_fraction_values(self, args, confdict):
-        if args.meanenrich_or_fracfontrib_stomp_values:
+        if args.fractions_stomp_values:
             for frac_type in ["mean_enrichment", "isotopologue_proportions"]:
                 curr_dict = self.frames_dict[confdict[frac_type]]
                 for co in curr_dict.keys():

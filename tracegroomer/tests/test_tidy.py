@@ -8,7 +8,7 @@ from tracegroomer.tidy import CompositeData
 
 class MimicArg:
     def __init__(self):
-        self.meanenrich_or_fracfontrib_stomp_values = True
+        self.fractions_stomp_values = True
         self.use_internal_standard = "W_acid"
 
 

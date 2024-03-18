@@ -62,16 +62,11 @@ def prep_args() -> argparse.ArgumentParser:
                         help="Metabolites whose isotopologues are less  \
                         or equal to this cutoff, are removed.")
 
-    parser.add_argument("--isosprop_stomp_values",
-                        action=argparse.BooleanOptionalAction,
-                        default=True,
-                        help="Stomps isotopologues' proportions \
-                        to max 1.0 and min 0.0")
-
-    parser.add_argument("--meanenrich_or_fracfontrib_stomp_values",
+    parser.add_argument("--fractions_stomp_values",
                         action=argparse.BooleanOptionalAction, default=True,
                         help="Stomps fractional contributions (synonym: \
-                        mean enrichment) to max 1.0 and min 0.0")
+                        mean enrichment), and isotopologue proportions, \
+                        to max 1.0 and min 0.0")  #meanenrich_or_fracfontrib
 
     # for total abundance only if VIB data
     parser.add_argument("--under_detection_limit_set_nan",
