@@ -13,10 +13,10 @@ def prep_args() -> argparse.ArgumentParser:
                                      formatter_class=show_defaults)
 
     parser.add_argument('-cf', '--config_file', type=str,
-                        help="Configuration file given as absolute path.")
+                        help="Configuration file given as absolute path")
 
     parser.add_argument('-lm', '--labeled_metabo_file', type=str, default=None,
-                        help="Labeled metabolomics input file, absolute path.")
+                        help="Labeled metabolomics input file, absolute path")
 
     parser.add_argument('-tf', '--type_of_file', type=str, default=None,
                         help="One of the following: \
@@ -25,13 +25,13 @@ def prep_args() -> argparse.ArgumentParser:
     parser.add_argument('--amountMaterial_path', type=str, default=None,
                         help="absolute path to the file having the amount \
                            of material (number of cells, tissue weight, etc) \
-                           by sample, for the normalization.")
+                           by sample, for the normalization")
 
     parser.add_argument("--alternative_div_amount_material",
                         action=argparse.BooleanOptionalAction, default=True,
                         help="When dividing values by the amount of  \
                         material, also multiplies by 'mean(amountMaterial)' \
-                        to stay in abundance units.")
+                        to stay in abundance units")
 
     parser.add_argument("--div_isotopologues_by_amount_material",
                         action=argparse.BooleanOptionalAction,
@@ -39,13 +39,13 @@ def prep_args() -> argparse.ArgumentParser:
                         help="Apply normalization by the amount of material, \
                         at the level of isotopologue absolute values. \
                         After this, re-computes all derived metrics. \
-                        If False, only total abundances are normalized.")
+                        If False, only total abundances are normalized")
 
     parser.add_argument("--use_internal_standard", default=None, type=str,
                         help='Internal Standard for performing the division: \
                         total_abundances/internal_standard, \
                         example: --use_internal_standard Myristic_acid_d27. \
-                        By default is not performed.')
+                        By default is not performed')
 
     parser.add_argument("--remove_these_metabolites", default=None, type=str,
                         help="Absolute path to the file with columns:  \
@@ -59,8 +59,8 @@ def prep_args() -> argparse.ArgumentParser:
                         help="Plot isotopologue values, as given")
 
     parser.add_argument("--isosprop_min_admitted", default=-0.5, type=float,
-                        help="Metabolites whose isotopologues are less  \
-                        or equal to this cutoff, are removed.")
+                        help="Metabolites whose isotopologues proportions are\
+                        less or equal to this cutoff, are removed")
 
     parser.add_argument("--fractions_stomp_values",
                         action=argparse.BooleanOptionalAction, default=True,
@@ -72,12 +72,17 @@ def prep_args() -> argparse.ArgumentParser:
     parser.add_argument("--under_detection_limit_set_nan",
                         action=argparse.BooleanOptionalAction,
                         default=True, help="On VIB results. Any abundance \
-                           < LOD (Limit Of Detection), is set as NaN.")
+                           < LOD (Limit Of Detection), is set as NaN")
 
     parser.add_argument("--subtract_blankavg",
                         action=argparse.BooleanOptionalAction, default=True,
                         help="On VIB results. From samples' abundances,  \
-                          subtracts the average of the blanks.")
+                          subtracts the average of the blanks")
+
+    # output files extension
+    parser.add_argument("-ox", "--output_files_extension", type=str,
+                        default="csv", help="Extension for the output files, \
+                        must be one of the following: csv|tsv|txt")
 
     return parser
 

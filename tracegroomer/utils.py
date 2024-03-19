@@ -362,7 +362,7 @@ def save_heatmap_sums_isos(thesums, figuretitle, outputfigure) -> None:
 
 
 def save_isos_preview(dict_isos_prop, metadata, output_plots_dir,
-                      the_boolean_arg) -> None:
+                      the_boolean_arg, output_extension) -> None:
     if the_boolean_arg:
         for k in metadata['compartment'].unique().tolist():
             df = dict_isos_prop[k]
@@ -387,7 +387,7 @@ def save_isos_preview(dict_isos_prop, metadata, output_plots_dir,
             dfmelt = pd.melt(df, id_vars=['metabolite', 'isotopologue_type'])
             dfmelt = impute_custom_levels_to_df(dfmelt)
             table_minimalbymet(dfmelt, os.path.join(output_plots_dir,
-                               f"minextremesIso_{k}.csv"))
+                               f"minextremesIso_{k}.{output_extension}"))
             outputfigure = os.path.join(output_plots_dir, f"allsampleIsos_{k}.pdf")
             figtitle = f"{k} compartment, Isotopologues (proportions) \
             across all samples"

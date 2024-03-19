@@ -168,8 +168,8 @@ class CompositeData:  # refactor this name
             if not os.path.exists(output_plots_dir):
                 os.makedirs(output_plots_dir)
             ut.save_isos_preview(
-                compartmentalized_dict, self.metadata,
-                output_plots_dir, args.isotopologues_preview)
+                compartmentalized_dict, self.metadata, output_plots_dir,
+                args.isotopologues_preview, args.output_files_extension)
             logger.info(f"saved figures to {output_plots_dir}")
 
     def pull_internal_standard(self, confdict, args):
@@ -304,7 +304,7 @@ def check_confdict_completeness(confdict) -> None:
                         f" in columns_variable_description")
 
 
-def save_tables(frames_dict, groom_out_path) -> None:
+def save_tables(frames_dict, groom_out_path, output_extension) -> None:
     for k in frames_dict.keys():
         # reunify the compartments
         tmpli = list()
@@ -320,10 +320,10 @@ def save_tables(frames_dict, groom_out_path) -> None:
         final_df.index.name = "ID"
         final_df = final_df.reset_index()
         final_df = final_df.drop_duplicates()
-        final_df.to_csv(os.path.join(groom_out_path, f"{k}.csv"),
-                        sep='\t', header=True, index=False)
+        o_file_path = os.path.join(groom_out_path, f"{k}.{output_extension}")
+        final_df.to_csv(o_file_path, sep='\t', header=True, index=False)
 
-        logger.info(f"File saved to: {os.path.join(groom_out_path, k)}.csv")
+        logger.info(f"File saved to: {o_file_path}")
         # note : do not clear zero rows, as gives problem pd.merge
 
 
@@ -351,7 +351,8 @@ def wrapper_common_steps(combo_data: CompositeData,
     combo_data.drop_metabolites()
     combo_data.stomp_fraction_values(args, confdict)
     combo_data.transfer__abund_nan__to_all_tables(confdict)
-    save_tables(combo_data.frames_dict, groom_out_path)
+    save_tables(combo_data.frames_dict, groom_out_path,
+                args.output_files_extension)
 
 
 def perform_type_prep(args, confdict, metadata_used_extension: str,
