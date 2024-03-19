@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "tracegroomer"
-version = "0.1.2"
+version = "0.1.3"
 description = "Convert and normalise metabolomics data formats (preprocessing for DIMet)"
 authors = [
   "Johanna Galvis Rodriguez <deisy-johanna.galvis-rodriguez@u-bordeaux.fr>",
