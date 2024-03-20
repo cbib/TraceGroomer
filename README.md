@@ -4,7 +4,7 @@
 [![bioconda package](https://img.shields.io/conda/v/bioconda/tracegroomer)](https://anaconda.org/bioconda/tracegroomer)
 
 TraceGroomer is a solution for formatting and normalising _isotope-labeled_ (a.k.a _Tracer_) _Metabolomics_ given file(s), 
-to produce the .csv files which are ready for [DIMet](https://github.com/cbib/DIMet) tool.
+to produce the tabular files which are ready for [DIMet](https://github.com/cbib/DIMet) tool.
 
 Not only one, but several input formats are accepted by TraceGroomer!:
 these input formats are described in detail
