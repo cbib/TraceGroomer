@@ -29,6 +29,12 @@ by the amount of material).
 _Note_ : TraceGroomer does not correct for naturally occurring isotopologues.
 Your data must be already processed by another software that performs such correction (e.g. [IsoCor](https://pypi.org/project/IsoCor/)).
 
+
+> [!IMPORTANT]
+> When using TraceGroomer, please cite:
+> 
+> Galvis J, Guyon J, Dartigues B, Hecht H, Grüning B, Specque F,  Soueidan H, Karkar S,  Daubon T, Nikolski M. DIMet: An open-source tool for Differential analysis of targeted Isotope-labeled Metabolomics data. _Bioinformatics_ 2024; btae282. [https://doi.org/10.1093/bioinformatics/btae282](https://doi.org/10.1093/bioinformatics/btae282)
+
 --------------------------
 
 ## Requirements
