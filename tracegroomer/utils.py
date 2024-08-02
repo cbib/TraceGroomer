@@ -17,7 +17,6 @@ import re
 from typing import Dict, List, Tuple, Union
 
 
-
 def reset_log_config(logger):
     """parameters for the log file"""
     out_log_file_name = "groom.log"
@@ -76,6 +75,26 @@ def open_amount_material(amount_material_path: str) -> pd.DataFrame:
             print(e, "unexpected error, could not open amountMaterial_path")
 
     return material_df
+
+
+def define_out_file_names(confdict, type_of_file):
+    final_out_file_names = dict()
+    internal_fill_if_lacking = {'abundances': 'TotalMetaboliteAbundances',
+                      'mean_enrichment': 'MeanEnrichmentData',
+                      'isotopologues': 'IsotopologueAbsoluteValues',
+                      'isotopologue_proportions': 'IsotopologueProportions'}
+
+    for k in ['abundances', 'mean_enrichment', 'isotopologues',
+              'isotopologue_proportions']:
+        if confdict[k] is not None:
+            final_out_file_names[k] = confdict[k]
+        else:
+            final_out_file_names[k] = internal_fill_if_lacking[k]
+
+    if type_of_file == 'VIBMEC_xlsx':  # does not offer isotopologue absolute
+        final_out_file_names['isotopologues'] = None
+
+    return final_out_file_names
 
 
 def open_metabolites_to_drop(exclude_list_file: str) -> pd.DataFrame:
@@ -504,17 +523,19 @@ def drop__metabolites_by_compart(frames_dict: Dict[str, pd.DataFrame],
     return frames_dict
 
 
-def transfer__abund_nan__to_all_tables(confdict, frames_dict, metadata):
+def transfer__abund_nan__to_all_tables(final_files_names: dict,
+                                       frames_dict, metadata):
     """propagates nan from abundance
     # to isotopologues and fractional contributions"""
-    isos_tables = [x for x in [confdict['isotopologues'],
-                               confdict['isotopologue_proportions']
+    isos_tables = [x for x in [final_files_names['isotopologues'],
+                               final_files_names['isotopologue_proportions']
                                ] if x is not None]
     for co in metadata['compartment'].unique().tolist():
-        abu_co = frames_dict[confdict['abundances']][co]
-        frac_co = frames_dict[confdict['mean_enrichment']][co]
+        abu_co = frames_dict[final_files_names['abundances']][co]
+        frac_co = frames_dict[final_files_names['mean_enrichment']][co]
         tt = frac_co.mask(abu_co.isnull())
-        frames_dict[confdict['mean_enrichment']][co] = tt
+
+        frames_dict[final_files_names['mean_enrichment']][co] = tt
         # propagation to isotopologues, both prop and absolutes:
         for isoname in isos_tables:
             isoname_df_co = frames_dict[isoname][co]
@@ -719,3 +740,5 @@ def transformmyisotopologues(isos_list, style) -> List[str]:
         outli = isos_list
         raise ValueError("isotopologues style not vib nor generic")
     return outli
+
+
