@@ -30,6 +30,7 @@ class CompositeData:  # refactor this name
                                        'isotopologue_proportions',
                                        'isotopologues',
                                        'abundances']
+        self.user_given_names = dict()
 
     def load_metadata(self, metadata_path):
         self.metadata = ut.open_metadata(metadata_path)
@@ -137,6 +138,17 @@ class CompositeData:  # refactor this name
         self.metabolites2isotopologues_df = ut.isotopologues_meaning_df(
             isotopologues_full)
 
+    def set_user_given_names(self, confdict):
+        """
+        Set user given names of quantifications only.
+        This will be useful for final_files_names property"""
+        user_given_names = dict()
+        for keyname_quantif in self.expected_keys_confdict:
+            if confdict[keyname_quantif] is not None:
+                user_given_names[keyname_quantif] = confdict[
+                    keyname_quantif]
+        self.user_given_names = user_given_names
+
     def fill_missing_data(self, confdict) -> Dict[str, str]:
         """
         Computes the quantification that the user set None in confdict.
@@ -149,20 +161,22 @@ class CompositeData:  # refactor this name
 
         return confdict_new
 
-    def true_key_value_available_frames(self, confdict):
+    def update_truly_available_frames(self, confdict):
         """
         Sets the properties .available_frames and .reverse_available_frames,
-        which aredictionaries of quantifications names set by the user
-         in the confdict.
-        Note: When a quantification name is None in confdict, that indicates
-        to TraceGroomer to compute it from the isotopologues absolute values.
+        which are dictionaries of quantifications names that truly exist
+          in the object (in the frames_dict)
         """
         reverse_dict = dict()
         avail_dict = dict()
         true_reverse_dict = dict()
         for m in self.expected_keys_confdict:
-            reverse_dict[confdict[m]] = m
+            try:
+                reverse_dict[confdict[m]] = m
+            except KeyError:
+                continue
         for h in self.frames_dict.keys():
+            # if the quantification content and key exists
             if (self.frames_dict[h] is not None) and (h is not None):
                 avail_dict[reverse_dict[h]] = h
                 true_reverse_dict[h] = reverse_dict[h]
@@ -240,28 +254,35 @@ class CompositeData:  # refactor this name
                 args.use_internal_standard)
             self.frames_dict = frames_dict
 
-    def assign_final_files_names(self, final_files_names_dict):
-        """Use after all normalizations and before compartmentalization.
-        Note: the final names replace the internally created keys if present:
-        abundances_computed, mean_enrichment_computed and
-        isotopologue_props_computed. This without altering the values.
-        The aim is to output the tables with the user defined names."""
+    def set_final_files_names(self):
+        not_user_defined_dict = ut.retrieve_dict_not_user_defined()
+        final_files_names_d = dict()
+        for valuename in self.reverse_available_frames.keys():
+            keyname = self.reverse_available_frames[valuename]
+            if keyname in list(self.user_given_names.keys()):
+                final_files_names_d[keyname] = self.user_given_names[keyname]
+            else:
+                if self.available_frames[keyname] is not None:
+                    final_files_names_d[keyname] = not_user_defined_dict[
+                        keyname]
+        # end for
         frames_names_list = list(self.frames_dict.keys())
         for frame_name in frames_names_list:
             if frame_name == "abundances_computed":
-                self.frames_dict[final_files_names_dict[
+                self.frames_dict[final_files_names_d[
                     "abundances"]] = self.frames_dict[frame_name]
                 del self.frames_dict[frame_name]
             if frame_name == "mean_enrichment_computed":
-                self.frames_dict[final_files_names_dict[
+                self.frames_dict[final_files_names_d[
                     "mean_enrichment"]] = self.frames_dict[frame_name]
                 del self.frames_dict[frame_name]
             if frame_name == "isotopologue_props_computed":
-                self.frames_dict[final_files_names_dict[
-                    "isotopologue_proportions"]] = self.frames_dict[frame_name]
+                self.frames_dict[final_files_names_d[
+                    "isotopologue_proportions"]] = self.frames_dict[
+                    frame_name]
                 del self.frames_dict[frame_name]
-        # and update properties: available_frames, reverse_available_frames
-        self.true_key_value_available_frames(final_files_names_dict)
+        # end for
+        self.final_files_names = final_files_names_d
 
     def compartmentalize_frames_dict(self):
         for k in self.frames_dict.keys():
@@ -365,14 +386,11 @@ def save_tables(frames_dict, groom_out_path, output_extension) -> None:
 def wrapper_common_steps(combo_data: CompositeData,
                          args, confdict, groom_out_path: str) -> None:
     combo_data.load_metabolite_to_isotopologue_df(confdict)
-    final_files_names_dict = ut.define_out_file_names(
-            confdict, combo_data.type_of_file)  # reserve for output tables
-    confdict = combo_data.fill_missing_data(confdict)  # for normalisations
-    combo_data.true_key_value_available_frames(confdict)
-
+    combo_data.set_user_given_names(confdict)  # only user def names
+    confdict = combo_data.fill_missing_data(confdict)  # critical completion
+    combo_data.update_truly_available_frames(confdict)  # update 1
     combo_data.save_isotopologues_preview(args, confdict, groom_out_path)
-
-    combo_data.pull_internal_standard(confdict, args)
+    combo_data.pull_internal_standard(confdict, args)  # before normalisation
 
     if combo_data.material_df is not None:
         logger.info("computing normalization by amount of material")
@@ -382,13 +400,15 @@ def wrapper_common_steps(combo_data: CompositeData,
                 args, confdict)
         else:
             combo_data.normalize_total_abundance_by_material(args, confdict)
+
     combo_data.normalize_by_internal_standard(args, confdict)
-    combo_data.assign_final_files_names(final_files_names_dict)  # use new
+    combo_data.set_final_files_names()
+    combo_data.update_truly_available_frames(combo_data.final_files_names)  # update 2
     combo_data.compartmentalize_frames_dict()
     # last steps use compartmentalized frames
     combo_data.drop_metabolites()
-    combo_data.stomp_fraction_values(args, final_files_names_dict)
-    combo_data.transfer__abund_nan__to_all_tables(final_files_names_dict)
+    combo_data.stomp_fraction_values(args, combo_data.final_files_names)
+    combo_data.transfer__abund_nan__to_all_tables(combo_data.final_files_names)
     save_tables(combo_data.frames_dict, groom_out_path,
                 args.output_files_extension)
 

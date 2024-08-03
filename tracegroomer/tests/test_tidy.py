@@ -84,7 +84,7 @@ class TestCompositeData(TestCase):
         config = {"isotopologues": None, "mean_enrichment": None,
                   "abundances": "totalAbunds",
                   "isotopologue_proportions": "FractionsIsotopic"}
-        myobj.true_key_value_available_frames(config)
+        myobj.update_truly_available_frames(config)
         result1 = myobj.available_frames
         result2 = myobj.reverse_available_frames
         self.assertListEqual(list(result1.values()), list(result2.keys()))
