@@ -401,7 +401,8 @@ def save_isos_preview(dict_isos_prop, metadata, output_plots_dir,
             dfmelt = impute_custom_levels_to_df(dfmelt)
             table_minimalbymet(dfmelt, os.path.join(output_plots_dir,
                                f"minextremesIso_{k}.{output_extension}"))
-            outputfigure = os.path.join(output_plots_dir, f"allsampleIsos_{k}.pdf")
+            outputfigure = os.path.join(
+                output_plots_dir, f"allsampleIsos_{k}.pdf")
             figtitle = f"{k} compartment, Isotopologues (proportions) \
             across all samples"
             save_rawisos_plot(dfmelt, figuretitle=figtitle,
@@ -742,5 +743,3 @@ def transformmyisotopologues(isos_list, style) -> List[str]:
         outli = isos_list
         raise ValueError("isotopologues style not vib nor generic")
     return outli
-
-

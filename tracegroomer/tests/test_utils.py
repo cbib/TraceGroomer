@@ -69,7 +69,7 @@ class Test(TestCase):
             df, metabolites2isotopologues_df
         )
 
-        self.assertAlmostEqual(result.loc['acCoA_m+0','sampleA2'],
+        self.assertAlmostEqual(result.loc['acCoA_m+0', 'sampleA2'],
                                0.529913, places=6)
         self.assertAlmostEqual(result.loc['acCoA_m+1', 'sampleB1'],
                                0.313908, places=6)
@@ -121,14 +121,14 @@ class Test(TestCase):
     def test_impute_custom_levels_to_df(self):
         melted_df = pd.DataFrame({
             "metabolite": ["AcCoA", "AcCoA", "AcCoA", "unknown", "unknown",
-                         "gly", "gly", "gly", "AcCoA", "AcCoA", "AcCoA",
-                         "unknown", "unknown", "gly", "gly", "gly"  ],
-          "isotopologue_type": [0, 1, 2, 0, 1, 0, 1, 2, 0, 1, 2, 0, 1, 0, 1,
-                                2],
-          "samples": ["s1", "s1", "s1", "s1", "s1", "s1", "s1", "s1", "s2",
-                      "s2", "s2", "s2", "s2", "s2", "s2", "s2"],
-          "value": [0.3, 0.6, 0.1, 0.4, 0.6, 0.2, 0.5, 0.3,
-                    0.25, 0.62, 0.15, 0.5, 0.5, 0.23, 0.46, 0.31]
+                           "gly", "gly", "gly", "AcCoA", "AcCoA", "AcCoA",
+                           "unknown", "unknown", "gly", "gly", "gly"],
+            "isotopologue_type": [0, 1, 2, 0, 1, 0, 1, 2, 0, 1, 2,
+                                  0, 1, 0, 1, 2],
+            "samples": ["s1", "s1", "s1", "s1", "s1", "s1", "s1", "s1", "s2",
+                        "s2", "s2", "s2", "s2", "s2", "s2", "s2"],
+            "value": [0.3, 0.6, 0.1, 0.4, 0.6, 0.2, 0.5, 0.3,
+                      0.25, 0.62, 0.15, 0.5, 0.5, 0.23, 0.46, 0.31]
           })
         result = utils.impute_custom_levels_to_df(melted_df)
 
@@ -188,8 +188,8 @@ class Test(TestCase):
         confdict = {"isotopologues": "MyIsotopes"}
 
         result = utils.divide_by_amount_material(
-            frames_dict,confdict, material_df=micrograms_weight,
-            alternative_method=True, metric="isotopologues" )
+            frames_dict, confdict, material_df=micrograms_weight,
+            alternative_method=True, metric="isotopologues")
 
         witness = (df.loc["acCoA_m+1", "sampleA2"] / micrograms_weight.loc[
             "sampleA2", "0"]) * micrograms_weight["0"].mean()
@@ -202,7 +202,7 @@ class Test(TestCase):
             np.around(
                 result['MyIsotopes'].loc['acCoA_m+0', :], 6
             ) == np.array(
-                [ 10277.580938, 8869.973775, 6527.904882, 56000.880682]))
+                [10277.580938, 8869.973775, 6527.904882, 56000.880682]))
         )
         self.assertTrue(np.all(
             np.around(

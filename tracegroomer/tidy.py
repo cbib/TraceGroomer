@@ -30,6 +30,7 @@ class CompositeData:  # refactor this name
                                        'isotopologue_proportions',
                                        'isotopologues',
                                        'abundances']
+        self.metabolites2isotopologues_df = None
         self.user_given_names = dict()
 
     def load_metadata(self, metadata_path):
@@ -124,19 +125,21 @@ class CompositeData:  # refactor this name
     def load_metabolite_to_isotopologue_df(self, confdict):
         """df of correspondences between isotopologues and metabolites
         proper to the given data"""
-        try:
-            isotopologues_full = list(self.frames_dict[confdict[
-                                     "isotopologue_proportions"]].index)
-        # ok apply same proposed solution whether Key or Type error:
-        except TypeError:
-            isotopologues_full = list(self.frames_dict[confdict[
-                                      "isotopologues"]].index)
-        except KeyError:
-            isotopologues_full = list(self.frames_dict[confdict[
-                                    "isotopologues"]].index)
+        if (confdict['isotopologue_proportions'] is not None) or (
+                confdict['isotopologues'] is not None):
+            try:
+                isotopologues_full = list(self.frames_dict[confdict[
+                                         "isotopologue_proportions"]].index)
+            # ok apply same proposed solution whether Key or Type error:
+            except TypeError:
+                isotopologues_full = list(self.frames_dict[confdict[
+                                          "isotopologues"]].index)
+            except KeyError:
+                isotopologues_full = list(self.frames_dict[confdict[
+                                        "isotopologues"]].index)
 
-        self.metabolites2isotopologues_df = ut.isotopologues_meaning_df(
-            isotopologues_full)
+            self.metabolites2isotopologues_df = ut.isotopologues_meaning_df(
+                isotopologues_full)
 
     def set_user_given_names(self, confdict):
         """
@@ -178,19 +181,23 @@ class CompositeData:  # refactor this name
         for h in self.frames_dict.keys():
             # if the quantification content and key exists
             if (self.frames_dict[h] is not None) and (h is not None):
-                avail_dict[reverse_dict[h]] = h
-                true_reverse_dict[h] = reverse_dict[h]
+                try:
+                    avail_dict[reverse_dict[h]] = h
+                    true_reverse_dict[h] = reverse_dict[h]
+                except Exception as e:
+                    print(e)
+                    continue
 
         self.available_frames = avail_dict
         self.reverse_available_frames = true_reverse_dict
 
     def save_isotopologues_preview(self, args, confdict, groom_out_path):
-        compartmentalized_dict = ut.df_to__dic_bycomp(
-            self.frames_dict[confdict['isotopologue_proportions']],
-            self.metadata)
-        output_plots_dir = os.path.join(groom_out_path, "preview_plots")
         if args.isotopologues_preview:
-            logger.info(f"prepare isotopologue proportions overview figures")
+            compartmentalized_dict = ut.df_to__dic_bycomp(
+                self.frames_dict[confdict['isotopologue_proportions']],
+                self.metadata)
+            output_plots_dir = os.path.join(groom_out_path, "preview_plots")
+            logger.info("prepare isotopologue proportions overview figures")
             if not os.path.exists(output_plots_dir):
                 os.makedirs(output_plots_dir)
             ut.save_isos_preview(
@@ -204,8 +211,8 @@ class CompositeData:  # refactor this name
         ):
             try:
                 x = self.frames_dict[confdict['abundances']].columns.tolist()
-                y = self.frames_dict[confdict['abundances']
-                                     ].loc[args.use_internal_standard, :].tolist()
+                y = self.frames_dict[confdict['abundances']].loc[
+                    args.use_internal_standard, :].tolist()
                 instandard_abun_df = pd.DataFrame(
                     {"sample": x,
                      args.use_internal_standard: y
@@ -255,8 +262,13 @@ class CompositeData:  # refactor this name
             self.frames_dict = frames_dict
 
     def set_final_files_names(self):
+        """
+        Set final names of output files:
+          1. set final names dictionary and add as attribute, and
+          2. assign the values of 1. to the keys of the object.frames_dict
+        """
         not_user_defined_dict = ut.retrieve_dict_not_user_defined()
-        final_files_names_d = dict()
+        final_files_names_d = dict()  # set final names dictionary
         for valuename in self.reverse_available_frames.keys():
             keyname = self.reverse_available_frames[valuename]
             if keyname in list(self.user_given_names.keys()):
@@ -267,7 +279,7 @@ class CompositeData:  # refactor this name
                         keyname]
         # end for
         frames_names_list = list(self.frames_dict.keys())
-        for frame_name in frames_names_list:
+        for frame_name in frames_names_list:  # assign final names to frames
             if frame_name == "abundances_computed":
                 self.frames_dict[final_files_names_d[
                     "abundances"]] = self.frames_dict[frame_name]
@@ -313,7 +325,8 @@ class CompositeData:  # refactor this name
     def frames_filterby_min_admited_isotopol_proportions(
             self, confdict, isosprop_min_admitted: float
     ):
-        isos_propor_dic = self.frames_dict[confdict['isotopologue_proportions']]
+        isos_propor_dic = self.frames_dict[
+            confdict['isotopologue_proportions']]
         bad_mets = dict()
         for co in isos_propor_dic.keys():
             tmp = isos_propor_dic[co]
