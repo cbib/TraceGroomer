@@ -66,7 +66,7 @@ def prep_args() -> argparse.ArgumentParser:
                         action=argparse.BooleanOptionalAction, default=True,
                         help="Stomps fractional contributions (synonym: \
                         mean enrichment), and isotopologue proportions, \
-                        to max 1.0 and min 0.0")  #meanenrich_or_fracfontrib
+                        to max 1.0 and min 0.0")  # meanenrich_or_fracfontrib
 
     # for total abundance only if VIB data
     parser.add_argument("--under_detection_limit_set_nan",
@@ -95,7 +95,7 @@ def main() -> int:
     parser = prep_args()
     args = parser.parse_args()
     logger.info(
-        f"Running TraceGroomer with the following parameters:")
+        "Running TraceGroomer with the following parameters:")
     for x in vars(args).keys():
         logger.info(f"{x} = {vars(args)[x]} ")
 

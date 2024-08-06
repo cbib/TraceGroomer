@@ -17,7 +17,6 @@ import re
 from typing import Dict, List, Tuple, Union
 
 
-
 def reset_log_config(logger):
     """parameters for the log file"""
     out_log_file_name = "groom.log"
@@ -76,6 +75,20 @@ def open_amount_material(amount_material_path: str) -> pd.DataFrame:
             print(e, "unexpected error, could not open amountMaterial_path")
 
     return material_df
+
+
+def retrieve_dict_not_user_defined() -> Dict[str, str]:
+    """
+    Yields a dictionary of possible replacement names, usable when the
+    user set None for given type(s) of quantification in the configuration.
+    Note: If None for a type of quantif, TraceGrommer computed it internally
+    """
+    not_user_defined_dict = {
+        'abundances': 'TotalMetaboliteAbundances',
+        'mean_enrichment': 'MeanEnrichmentData',
+        'isotopologues': 'IsotopologueAbsoluteValues',
+        'isotopologue_proportions': 'IsotopologueProportions'}
+    return not_user_defined_dict
 
 
 def open_metabolites_to_drop(exclude_list_file: str) -> pd.DataFrame:
@@ -204,7 +217,8 @@ def complete_missing_frames(confdict, frames_dict, metabolites_isos_df
             print(" isotopologues' absolute values not available, \
                 impossible to get proportions")
 
-    if confdict['mean_enrichment'] is None:
+    if (confdict['mean_enrichment'] is None) and (
+            metabolites_isos_df is not None):
         try:
             frames_dict["mean_enrichment_computed"] = dict()
             tmp = compute_MEorFC_from_isotopologues_proportions(
@@ -388,7 +402,8 @@ def save_isos_preview(dict_isos_prop, metadata, output_plots_dir,
             dfmelt = impute_custom_levels_to_df(dfmelt)
             table_minimalbymet(dfmelt, os.path.join(output_plots_dir,
                                f"minextremesIso_{k}.{output_extension}"))
-            outputfigure = os.path.join(output_plots_dir, f"allsampleIsos_{k}.pdf")
+            outputfigure = os.path.join(
+                output_plots_dir, f"allsampleIsos_{k}.pdf")
             figtitle = f"{k} compartment, Isotopologues (proportions) \
             across all samples"
             save_rawisos_plot(dfmelt, figuretitle=figtitle,
@@ -504,31 +519,41 @@ def drop__metabolites_by_compart(frames_dict: Dict[str, pd.DataFrame],
     return frames_dict
 
 
-def transfer__abund_nan__to_all_tables(confdict, frames_dict, metadata):
+def transfer__abund_nan__to_all_tables(final_files_names: dict,
+                                       frames_dict, metadata):
     """propagates nan from abundance
     # to isotopologues and fractional contributions"""
-    isos_tables = [x for x in [confdict['isotopologues'],
-                               confdict['isotopologue_proportions']
-                               ] if x is not None]
+    # isos_tables = [x for x in [final_files_names['isotopologues'],
+    #                            final_files_names['isotopologue_proportions']
+    #                            ] if x is not None]
+    isos_tables = list()
+    for tmp_key in ['isotopologues', 'isotopologue_proportions']:
+        try:
+            isos_tables.append(final_files_names[tmp_key])
+        except KeyError:
+            continue
     for co in metadata['compartment'].unique().tolist():
-        abu_co = frames_dict[confdict['abundances']][co]
-        frac_co = frames_dict[confdict['mean_enrichment']][co]
+        abu_co = frames_dict[final_files_names['abundances']][co]
+        frac_co = frames_dict[final_files_names['mean_enrichment']][co]
         tt = frac_co.mask(abu_co.isnull())
-        frames_dict[confdict['mean_enrichment']][co] = tt
+
+        frames_dict[final_files_names['mean_enrichment']][co] = tt
         # propagation to isotopologues, both prop and absolutes:
-        for isoname in isos_tables:
-            isoname_df_co = frames_dict[isoname][co]
-            tmpfill = list()  # list of dataframes to concatenate
-            for metabolite in list(abu_co.index):
-                isoshere = [k for k in list(isoname_df_co.index) if
-                            k.startswith(metabolite)]
-                sub_iso_df_co = isoname_df_co.loc[isoshere, :].T
-                sub_iso_df_co = sub_iso_df_co.assign(
-                    abu_val=abu_co.loc[metabolite, :].tolist())
-                sub_iso_df_co.loc[sub_iso_df_co['abu_val'].isna(), :] = np.nan
-                sub_iso_df_co = sub_iso_df_co.drop(columns=['abu_val'])
-                tmpfill.append(sub_iso_df_co.T)
-            frames_dict[isoname][co] = pd.concat(tmpfill, axis=0)
+        if len(isos_tables) > 0:
+            for isoname in isos_tables:
+                isoname_df_co = frames_dict[isoname][co]
+                tmpfill = list()  # list of dataframes to concatenate
+                for metabolite in list(abu_co.index):
+                    isoshere = [k for k in list(isoname_df_co.index) if
+                                k.startswith(metabolite)]
+                    sub_iso_df_co = isoname_df_co.loc[isoshere, :].T
+                    sub_iso_df_co = sub_iso_df_co.assign(
+                        abu_val=abu_co.loc[metabolite, :].tolist())
+                    sub_iso_df_co.loc[sub_iso_df_co['abu_val'].isna(),
+                                      :] = np.nan
+                    sub_iso_df_co = sub_iso_df_co.drop(columns=['abu_val'])
+                    tmpfill.append(sub_iso_df_co.T)
+                frames_dict[isoname][co] = pd.concat(tmpfill, axis=0)
     return frames_dict
 
 
