@@ -10,6 +10,10 @@ authors = [
   "Bjorn Gruening <bjoern.gruening@gmail.com>",
   "Macha Nikolski <macha.nikolski@u-bordeaux.fr>"
 ]
+maintainers = [ "Benjamin Dartigues <benjamin.dartigues@u-bordeaux.fr>" ,
+  "Johanna Galvis Rodriguez <deisy-johanna.galvis-rodriguez@u-bordeaux.fr>"
+]
+repository = "https://github.com/cbib/TraceGroomer.git"
 license = "MIT"
 readme = "README.md"
 

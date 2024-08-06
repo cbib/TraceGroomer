@@ -342,18 +342,24 @@ class CompositeData:  # refactor this name
     def stomp_fraction_values(self, args, final_files_names: dict):
         if args.fractions_stomp_values:
             for frac_type in ["mean_enrichment", "isotopologue_proportions"]:
-                curr_dict = self.frames_dict[final_files_names[frac_type]]
-                for co in curr_dict.keys():
-                    df = curr_dict[co]
-                    df[df < 0] = 0
-                    df[df > 1] = 1
-                    curr_dict[co] = df
-                self.frames_dict[final_files_names[frac_type]] = curr_dict
+                try:
+                    curr_dict = self.frames_dict[final_files_names[frac_type]]
+                    for co in curr_dict.keys():
+                        df = curr_dict[co]
+                        df[df < 0] = 0
+                        df[df > 1] = 1
+                        curr_dict[co] = df
+                    self.frames_dict[final_files_names[frac_type]] = curr_dict
+                except KeyError as e:
+                    logger.info(f"{e}: unavailable (stomp fractions)")
 
     def transfer__abund_nan__to_all_tables(self, final_files_names: dict):
-        tmp = ut.transfer__abund_nan__to_all_tables(
-            final_files_names, self.frames_dict, self.metadata)
-        self.frames_dict = tmp
+        try:
+            tmp = ut.transfer__abund_nan__to_all_tables(
+                final_files_names, self.frames_dict, self.metadata)
+            self.frames_dict = tmp
+        except KeyError as e:
+            logger.info(f"{e}: unavailable (propagate NaN values)")
 
 # end class
 
@@ -421,7 +427,8 @@ def wrapper_common_steps(combo_data: CompositeData,
     # last steps use compartmentalized frames
     combo_data.drop_metabolites()
     combo_data.stomp_fraction_values(args, combo_data.final_files_names)
-    combo_data.transfer__abund_nan__to_all_tables(combo_data.final_files_names)
+    combo_data.transfer__abund_nan__to_all_tables(
+            combo_data.final_files_names)
     save_tables(combo_data.frames_dict, groom_out_path,
                 args.output_files_extension)
 

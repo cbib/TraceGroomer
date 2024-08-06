@@ -217,7 +217,8 @@ def complete_missing_frames(confdict, frames_dict, metabolites_isos_df
             print(" isotopologues' absolute values not available, \
                 impossible to get proportions")
 
-    if confdict['mean_enrichment'] is None:
+    if (confdict['mean_enrichment'] is None) and (
+            metabolites_isos_df is not None):
         try:
             frames_dict["mean_enrichment_computed"] = dict()
             tmp = compute_MEorFC_from_isotopologues_proportions(
